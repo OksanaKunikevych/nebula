@@ -41,10 +41,19 @@ class Review(BaseModel):
     processed: bool = False
 
 class ReviewResponse(BaseModel):
-    reviews: List[Review]
-    metrics: ReviewMetrics
-    insights: InsightAnalysis
-    metadata: Dict[str, Any]
+    status: str
+    message: str
+    data: List[Review]
+
+class RawReviewResponse(BaseModel):
+    status: str
+    message: str
+    data: List[Dict[str, Any]]
+
+class MetricsResponse(BaseModel):
+    status: str
+    message: str
+    data: ReviewMetrics
 
 @app.get("/")
 async def root():
@@ -55,18 +64,18 @@ async def root():
         "message": "Welcome to App Store Review Analysis API",
         "version": "1.0.0",
         "endpoints": {
-            "reviews": "/api/v1/reviews/{app_name}?app_id={app_id}&limit={limit}",
-            "raw_reviews": "/api/v1/reviews/{app_name}/raw?app_id={app_id}&limit={limit}",
-            "metrics": "/api/v1/reviews/{app_name}/metrics?app_id={app_id}&limit={limit}"
+            "reviews": "/api/v1/reviews/{app_id}?app_name={app_name}&limit={limit}",
+            "raw_reviews": "/api/v1/reviews/{app_id}/raw?app_name={app_name}&limit={limit}",
+            "metrics": "/api/v1/reviews/{app_id}/metrics?app_name={app_name}&limit={limit}"
         },
         "example": {
             "app_name": "nebula-horoscope-astrology",
             "app_id": "1459969523",
             "limit": 100,
             "urls": {
-                "reviews": "http://localhost:8001/api/v1/reviews/nebula-horoscope-astrology?app_id=1459969523&limit=100",
-                "raw_reviews": "http://localhost:8001/api/v1/reviews/nebula-horoscope-astrology/raw?app_id=1459969523&limit=100",
-                "metrics": "http://localhost:8001/api/v1/reviews/nebula-horoscope-astrology/metrics?app_id=1459969523&limit=100"
+                "reviews": "http://localhost:8001/api/v1/reviews/1459969523?app_name=nebula-horoscope-astrology&limit=100",
+                "raw_reviews": "http://localhost:8001/api/v1/reviews/1459969523/raw?app_name=nebula-horoscope-astrology&limit=100",
+                "metrics": "http://localhost:8001/api/v1/reviews/1459969523/metrics?app_name=nebula-horoscope-astrology&limit=100"
             }
         }
     }

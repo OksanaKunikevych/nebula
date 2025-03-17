@@ -18,7 +18,7 @@ def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us
     Args:
         app_name: Name of the app to collect reviews for
         app_id: App Store ID of the app
-        limit: Maximum number of reviews to collect
+        limit: Maximum number of reviews to collect (default: 100)
         country: Country code for the App Store (default: "us")
         
     Returns:
