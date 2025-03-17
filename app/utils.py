@@ -11,20 +11,21 @@ from unidecode import unidecode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def get_reviews(app_name: str, limit: int = 100, country: str = "us", app_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us") -> List[Dict[str, Any]]:
     """
     Get reviews from App Store for a specific app.
     
     Args:
         app_name: Name of the app to collect reviews for
+        app_id: App Store ID of the app
         limit: Maximum number of reviews to collect
-        app_id: Optional App Store ID of the app. If not provided, will be obtained by app_store_scraper internally.
+        country: Country code for the App Store (default: "us")
         
     Returns:
         List of review dictionaries
     """
     try:
-        logger.info(f"Initializing AppStore scraper for {app_name}" + (f" (ID: {app_id})" if app_id else ""))
+        logger.info(f"Initializing AppStore scraper for {app_name} (ID: {app_id})")
         app_store = AppStore(country=country, app_name=app_name, app_id=app_id)
         
         logger.info("Starting review collection...")
@@ -33,7 +34,7 @@ def get_reviews(app_name: str, limit: int = 100, country: str = "us", app_id: Op
         # Get raw reviews
         raw_reviews = app_store.reviews
         logger.info(f"Found {len(raw_reviews)} total reviews")
-        
+
         # Sort by date:
         # sorted_reviews = sorted(
         #     app_store.reviews,
@@ -41,7 +42,12 @@ def get_reviews(app_name: str, limit: int = 100, country: str = "us", app_id: Op
         #     reverse=True
         # )
         # selected_reviews = sorted_reviews[:limit]
-
+        
+        # Debug: Print structure of first review
+        if raw_reviews:
+            logger.info("First review structure:")
+            logger.info(raw_reviews[0])
+        
         # Randomly select reviews up to the limit
         selected_reviews = random.sample(raw_reviews, min(limit, len(raw_reviews)))
         logger.info(f"Randomly selected {len(selected_reviews)} reviews for analysis")
