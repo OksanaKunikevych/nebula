@@ -3,6 +3,8 @@ from datetime import datetime
 from collections import Counter
 import re
 from pydantic import BaseModel
+from bs4 import BeautifulSoup
+from unidecode import unidecode
 
 class ReviewMetrics(BaseModel):
     average_rating: float
@@ -27,16 +29,23 @@ def clean_text(text: str) -> str:
     # Debug: Print original text
     print(f"Original text: {text[:100]}...")
     
-    # Convert to lowercase
+    # 1. Remove HTML tags using BeautifulSoup
+    soup = BeautifulSoup(text, 'html.parser')
+    text = soup.get_text()
+    
+    # 2. Normalize Unicode characters
+    text = unidecode(text)
+    
+    # 3. Convert to lowercase
     text = text.lower()
     
-    # Remove special characters but keep basic punctuation
+    # 4. Remove special characters but keep basic punctuation
     text = re.sub(r'[^\w\s.,!?]', ' ', text)
     
-    # Normalize whitespace
+    # 5. Normalize whitespace (spaces, tabs, line breaks)
     text = re.sub(r'\s+', ' ', text)
     
-    # Strip leading/trailing whitespace
+    # 6. Remove leading/trailing whitespace
     text = text.strip()
     
     # Debug: Print cleaned text
@@ -77,7 +86,7 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
     
     # Calculate review length statistics
     review_lengths = [
-        len(clean_text(review.get('body', ''))) 
+        len(clean_text(review.get('review', ''))) 
         for review in reviews
     ]
     review_length_stats = {
@@ -120,22 +129,30 @@ def process_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for review in reviews:
         # Debug: Print raw review before processing
         print(f"\nProcessing review {review.get('review_id')}:")
-        print(f"Original body: {review.get('body', '')[:100]}...")
+        print(f"Original review: {review.get('review', '')[:100]}...")
+        
+        # Skip reviews with empty bodies
+        if not review.get('review'):
+            print(f"Skipping review {review.get('review_id')} - empty review")
+            continue
         
         processed_review = {
-            'review_id': str(review.get('review_id', '')),
             'rating': review.get('rating', 0),
             'title': clean_text(review.get('title', '')),
-            'body': clean_text(review.get('body', '')),
+            'review_text': clean_text(review.get('review', '')),
             'date': review.get('date'),
-            'developer_response': clean_text(review.get('developer_response', '')),
-            'developer_response_date': review.get('developer_response_date'),
             'processed': True
         }
         
+        # Skip if cleaning resulted in empty review_text
+        if not processed_review['review_text']:
+            print(f"Skipping review {review.get('review_id')} - empty review after cleaning")
+            continue
+        
         # Debug: Print processed review
-        print(f"Processed body: {processed_review['body'][:100]}...")
+        print(f"Processed review: {processed_review['review_text'][:100]}...")
         
         processed_reviews.append(processed_review)
     
+    print(f"\nProcessed {len(processed_reviews)} reviews (filtered out {len(reviews) - len(processed_reviews)} empty reviews)")
     return processed_reviews 

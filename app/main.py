@@ -21,19 +21,16 @@ app = FastAPI(
 )
 
 class Review(BaseModel):
-    review_id: str
     rating: int
     title: Optional[str]
-    body: str
+    review_text: str
     date: datetime
-    developer_response: Optional[str]
-    developer_response_date: Optional[datetime]
     processed: bool = False
 
 class ReviewResponse(BaseModel):
     reviews: List[Review]
-    metrics: ReviewMetrics
-    insights: InsightAnalysis
+    # metrics: ReviewMetrics
+    # insights: InsightAnalysis
     metadata: Dict[str, Any]
 
 def validate_app_id(app_id: str) -> bool:
@@ -53,7 +50,7 @@ async def get_reviews(
     country: str = Query(default="us", description="Country code for App Store")
 ):
     """
-    Collect latest reviews for a specified app and analyze them.
+    Collect random reviews for a specified app and analyze them.
     
     Args:
         app_id: The App Store ID of the application
@@ -80,74 +77,36 @@ async def get_reviews(
         
         # Collect reviews with rate limiting
         logger.info(f"Collecting reviews for app_id: {app_id}")
-        app_store.review(how_many=limit * 2)  # Collect more reviews to ensure we have enough
+        app_store.review(how_many=limit * 2)  # Collect more reviews to ensure we have enough for random selection after cleaning
         
         if not app_store.reviews:
             raise HTTPException(
                 status_code=404,
                 detail=f"No reviews found for app_id: {app_id}"
             )
-        
         logger.info(f"Found {len(app_store.reviews)} total reviews")
         
-        # Debug: Print raw review data
-        if app_store.reviews:
-            first_review = app_store.reviews[0]
-            logger.info("Sample raw review data:")
-            logger.info(f"Review ID: {first_review.get('review_id')}")
-            logger.info(f"Rating: {first_review.get('rating')}")
-            logger.info(f"Title: {first_review.get('title')}")
-            logger.info(f"Body: {first_review.get('body')}")
-            logger.info(f"Date: {first_review.get('date')}")
-            logger.info(f"Developer Response: {first_review.get('developer_response')}")
-            logger.info(f"Developer Response Date: {first_review.get('developer_response_date')}")
+        # Randomly select reviews up to the limit
+        selected_reviews = random.sample(app_store.reviews, min(limit, len(app_store.reviews)))
         
-        # Sort reviews by date (newest first) and select the latest ones
-        sorted_reviews = sorted(
-            app_store.reviews,
-            key=lambda x: x.get('date', datetime.min),
-            reverse=True
-        )
-        selected_reviews = sorted_reviews[:limit]
-        logger.info(f"Selected {len(selected_reviews)} latest reviews for analysis")
+        # Sort by date:
+        # sorted_reviews = sorted(
+        #     app_store.reviews,
+        #     key=lambda x: x.get('date', datetime.min),
+        #     reverse=True
+        # )
+        # selected_reviews = sorted_reviews[:limit]
         
-        # Debug: Print selected review data
-        if selected_reviews:
-            first_selected = selected_reviews[0]
-            logger.info("Sample selected review data:")
-            logger.info(f"Review ID: {first_selected.get('review_id')}")
-            logger.info(f"Rating: {first_selected.get('rating')}")
-            logger.info(f"Title: {first_selected.get('title')}")
-            logger.info(f"Body: {first_selected.get('body')}")
-            logger.info(f"Date: {first_selected.get('date')}")
-            logger.info(f"Developer Response: {first_selected.get('developer_response')}")
-            logger.info(f"Developer Response Date: {first_selected.get('developer_response_date')}")
-
+        logger.info(f"Selected {len(selected_reviews)} random reviews for analysis")
+        
         # Process and clean the reviews
         processed_reviews = process_reviews(selected_reviews)
-        logger.info(f"Processed {len(processed_reviews)} reviews")
-        
-        # Debug: Print processed review data
-        if processed_reviews:
-            first_processed = processed_reviews[0]
-            logger.info("Sample processed review data:")
-            logger.info(f"Review ID: {first_processed.get('review_id')}")
-            logger.info(f"Rating: {first_processed.get('rating')}")
-            logger.info(f"Title: {first_processed.get('title')}")
-            logger.info(f"Body: {first_processed.get('body')}")
-            logger.info(f"Date: {first_processed.get('date')}")
-            logger.info(f"Developer Response: {first_processed.get('developer_response')}")
-            logger.info(f"Developer Response Date: {first_processed.get('developer_response_date')}")
-            logger.info(f"Processed: {first_processed.get('processed')}")
         
         # Calculate metrics
-        metrics = calculate_metrics(selected_reviews)
-        logger.info("Calculated metrics")
+        #metrics = calculate_metrics(selected_reviews)
         
         # Perform NLP analysis
-        logger.info("Starting NLP analysis...")
-        insights = analyze_reviews(selected_reviews)
-        logger.info("Completed NLP analysis")
+        #insights = analyze_reviews(selected_reviews)
         
         # Calculate metadata
         execution_time = time.time() - start_time
@@ -157,17 +116,13 @@ async def get_reviews(
             "execution_time_seconds": round(execution_time, 2),
             "country": country,
             "app_id": app_id,
-            "app_name": app_name,
-            "date_range": {
-                "latest_review": selected_reviews[0].get('date').isoformat() if selected_reviews else None,
-                "oldest_review": selected_reviews[-1].get('date').isoformat() if selected_reviews else None
-            }
+            "app_name": app_name
         }
         
         return ReviewResponse(
             reviews=processed_reviews,
-            metrics=metrics,
-            insights=insights,
+            #metrics=metrics,
+            #insights=insights,
             metadata=metadata
         )
         
