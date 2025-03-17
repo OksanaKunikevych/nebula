@@ -7,7 +7,9 @@ from datetime import datetime
 import logging
 import time
 from typing import Dict, Any
-from .analysis import process_reviews, calculate_metrics, ReviewMetrics
+
+from app.data_cleaning import clean_reviews
+from app.metrics import calculate_metrics, ReviewMetrics
 from .nlp_analysis import analyze_reviews, InsightAnalysis
 
 # Configure logging
@@ -30,7 +32,7 @@ class Review(BaseModel):
 class ReviewResponse(BaseModel):
     reviews: List[Review]
     metrics: ReviewMetrics
-    # insights: InsightAnalysis
+    #insights: InsightAnalysis
     metadata: Dict[str, Any]
 
 def validate_app_id(app_id: str) -> bool:
@@ -40,6 +42,7 @@ def validate_app_id(app_id: str) -> bool:
         int(app_id)
         return True
     except ValueError:
+        logger.error(f"Invalid app_id format: {app_id}. App Store IDs should be numeric.")
         return False
 
 @app.get("/reviews/{app_id}", response_model=ReviewResponse)
@@ -100,13 +103,13 @@ async def get_reviews(
         logger.info(f"Selected {len(selected_reviews)} random reviews for analysis")
         
         # Process and clean the reviews
-        processed_reviews = process_reviews(selected_reviews)
+        processed_reviews = clean_reviews(selected_reviews)
         
         # Calculate metrics
         metrics = calculate_metrics(processed_reviews)
         
         # Perform NLP analysis
-        #insights = analyze_reviews(selected_reviews)
+       # insights = analyze_reviews(selected_reviews)
         
         # Calculate metadata
         execution_time = time.time() - start_time
