@@ -5,13 +5,13 @@ import re
 from pydantic import BaseModel
 from bs4 import BeautifulSoup
 from unidecode import unidecode
+import numpy as np
 
 class ReviewMetrics(BaseModel):
     average_rating: float
     rating_distribution: Dict[int, float]  # rating -> percentage
     total_reviews: int
     review_length_stats: Dict[str, float]  # min, max, avg length
-    date_range: Dict[str, datetime]  # earliest and latest review dates
 
 def clean_text(text: str) -> str:
     """
@@ -55,7 +55,7 @@ def clean_text(text: str) -> str:
 
 def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
     """
-    Calculate various metrics from the reviews.
+    Calculate averae rating and rating distribution metrics from the reviews.
     
     Args:
         reviews: List of review dictionaries
@@ -64,29 +64,31 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
         ReviewMetrics object containing calculated metrics
     """
     if not reviews:
+        logger.warning("No reviews provided for analysis")
         return ReviewMetrics(
             average_rating=0.0,
-            rating_distribution={},
+            rating_distribution={i: 0.0 for i in range(6)},  # Initialize all ratings from 0 to 5
             total_reviews=0,
             review_length_stats={"min": 0, "max": 0, "avg": 0},
-            date_range={"earliest": None, "latest": None}
         )
     
     # Calculate rating metrics
     ratings = [review.get('rating', 0) for review in reviews]
     total_reviews = len(ratings)
-    average_rating = sum(ratings) / total_reviews if total_reviews > 0 else 0
+
+    # Calculate average rating
+    average_rating = np.mean(ratings) if total_reviews > 0 else 0
     
     # Calculate rating distribution
     rating_counts = Counter(ratings)
     rating_distribution = {
-        rating: (count / total_reviews) * 100 
-        for rating, count in rating_counts.items()
+        rating: (rating_counts.get(rating, 0) / total_reviews) * 100 
+        for rating in range(6)
     }
     
     # Calculate review length statistics
     review_lengths = [
-        len(clean_text(review.get('review', ''))) 
+        len(clean_text(review.get('review_text', ''))) 
         for review in reviews
     ]
     review_length_stats = {
@@ -95,23 +97,11 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
         "avg": sum(review_lengths) / total_reviews
     }
     
-    # Calculate date range
-    dates = [
-        review.get('date') 
-        for review in reviews 
-        if review.get('date')
-    ]
-    date_range = {
-        "earliest": min(dates) if dates else None,
-        "latest": max(dates) if dates else None
-    }
-    
     return ReviewMetrics(
         average_rating=round(average_rating, 2),
         rating_distribution=rating_distribution,
         total_reviews=total_reviews,
         review_length_stats=review_length_stats,
-        date_range=date_range
     )
 
 def process_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

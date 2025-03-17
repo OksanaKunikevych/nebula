@@ -29,7 +29,7 @@ class Review(BaseModel):
 
 class ReviewResponse(BaseModel):
     reviews: List[Review]
-    # metrics: ReviewMetrics
+    metrics: ReviewMetrics
     # insights: InsightAnalysis
     metadata: Dict[str, Any]
 
@@ -103,7 +103,7 @@ async def get_reviews(
         processed_reviews = process_reviews(selected_reviews)
         
         # Calculate metrics
-        #metrics = calculate_metrics(selected_reviews)
+        metrics = calculate_metrics(processed_reviews)
         
         # Perform NLP analysis
         #insights = analyze_reviews(selected_reviews)
@@ -121,7 +121,7 @@ async def get_reviews(
         
         return ReviewResponse(
             reviews=processed_reviews,
-            #metrics=metrics,
+            metrics=metrics,
             #insights=insights,
             metadata=metadata
         )
