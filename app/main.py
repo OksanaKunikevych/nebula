@@ -32,7 +32,7 @@ class Review(BaseModel):
 class ReviewResponse(BaseModel):
     reviews: List[Review]
     metrics: ReviewMetrics
-    #insights: InsightAnalysis
+    insights: InsightAnalysis
     metadata: Dict[str, Any]
 
 def validate_app_id(app_id: str) -> bool:
@@ -109,7 +109,7 @@ async def get_reviews(
         metrics = calculate_metrics(processed_reviews)
         
         # Perform NLP analysis
-       # insights = analyze_reviews(selected_reviews)
+        insights = analyze_reviews(processed_reviews)
         
         # Calculate metadata
         execution_time = time.time() - start_time
@@ -125,7 +125,7 @@ async def get_reviews(
         return ReviewResponse(
             reviews=processed_reviews,
             metrics=metrics,
-            #insights=insights,
+            insights=insights,
             metadata=metadata
         )
         
