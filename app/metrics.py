@@ -42,7 +42,7 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
     # Calculate rating distribution
     rating_counts = Counter(ratings)
     rating_distribution = {
-        rating: (rating_counts.get(rating, 0) / total_reviews) * 100 
+        str(rating): rating_counts.get(rating, 0)
         for rating in range(6)
     }
     

@@ -122,9 +122,6 @@ def clean_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     processed_reviews = []
     
     for review in reviews:
-        # Debug: Print raw review before processing
-        print(f"Original review: {review.get('review', '')[:100]}...")
-        
         # Skip reviews with empty bodies
         if not review.get('review'):
             print(f"Skipping - empty review")
@@ -142,9 +139,6 @@ def clean_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if not processed_review['review_text']:
             print(f"Skipping review - empty review after cleaning")
             continue
-        
-        # Debug: Print processed review
-        print(f"Processed review: {processed_review['review_text'][:100]}...")
         
         processed_reviews.append(processed_review)
     
