@@ -179,9 +179,12 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     ]
     
     # Combine all review texts
-    all_text = " ".join(review.get('review_text', '') for review in reviews)
+    all_text = " ".join(
+        f"{review.get('title', '')} {review.get('review_text', '')}"
+        for review in reviews
+    )
     negative_text = " ".join(
-        review.get('review_text', '')
+        f"{review.get('title', '')} {review.get('review_text', '')}"
         for review in negative_reviews
     )
     
@@ -193,7 +196,9 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     scores = []
     
     for review in reviews:
-        sentiment, score = get_sentiment(review.get('review_text', ''))
+        # Combine title and review text for sentiment analysis
+        combined_text = f"{review.get('title', '')} {review.get('review_text', '')}"
+        sentiment, score = get_sentiment(combined_text)
         sentiments.append(sentiment)
         scores.append(score)
         print(f"--------------------------------")
@@ -243,11 +248,38 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     
     # Keyword Analysis
     logger.info("Starting keyword analysis...")
-    semantic_keywords = extract_keywords(all_text)
     
-    # Negative keywords analysis
-    logger.info("Starting negative keyword analysis...")
+    # Get positive reviews (rating >= 4)
+    positive_reviews = [
+        review for review in reviews
+        if review.get('rating', 0) >= 4
+    ]
+    
+    # Combine positive review texts
+    positive_text = " ".join(
+        f"{review.get('title', '')} {review.get('review_text', '')}"
+        for review in positive_reviews
+    )
+    
+    # Extract keywords from positive reviews
+    semantic_keywords = extract_keywords(positive_text)
+    
+    # Extract keywords from negative reviews
     negative_keywords = extract_keywords(negative_text)
+    
+    # Filter out any keywords that appear in both lists
+    semantic_keywords = [
+        kw for kw in semantic_keywords
+        if not any(nk['keyword'] == kw['keyword'] for nk in negative_keywords)
+    ]
+    negative_keywords = [
+        nk for nk in negative_keywords
+        if not any(sk['keyword'] == nk['keyword'] for sk in semantic_keywords)
+    ]
+    
+    # Sort by score and take top 10
+    semantic_keywords = sorted(semantic_keywords, key=lambda x: x['score'], reverse=True)[:10]
+    negative_keywords = sorted(negative_keywords, key=lambda x: x['score'], reverse=True)[:10]
     
     # Generate Insights
     improvement_areas = []
