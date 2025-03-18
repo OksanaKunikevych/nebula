@@ -64,7 +64,7 @@ def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us
         selected_reviews = random.sample(raw_reviews, min(limit, len(raw_reviews)))
         logger.info(f"Randomly selected {len(selected_reviews)} reviews for analysis")
         
-        return selected_reviews
+        return selected_reviews[:limit]
     
     except Exception as e:
         logger.error(f"Error collecting reviews: {str(e)}")

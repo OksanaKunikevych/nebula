@@ -51,10 +51,10 @@ async def collect_reviews(
         
         # Add sentiment analysis to processed reviews
         for review in processed_reviews:
-            sentiment, score, confidence = get_sentiment(review.get('review_text', ''))
+            sentiment, score = get_sentiment(review['review_text'])
             review['sentiment'] = sentiment
             review['sentiment_score'] = score
-            review['sentiment_confidence'] = confidence
+            review['date_processed'] = datetime.utcnow()
         
         # Save processed reviews
         processed_count = await db.save_processed_reviews(app_id, processed_reviews)

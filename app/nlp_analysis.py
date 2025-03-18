@@ -34,10 +34,9 @@ sentiment_analyzer = pipeline(
 keybert_model = KeyBERT()
 
 class SentimentAnalysis(BaseModel):
-    overall_sentiment: str  # POSITIVE, NEGATIVE, or NEUTRAL
-    sentiment_score: float  # 0 to 1
-    sentiment_distribution: Dict[str, float]  # percentage of each sentiment
-    confidence: float  # confidence in the sentiment analysis
+    overall_sentiment: str
+    sentiment_score: float
+    sentiment_distribution: Dict[str, int]
 
 class KeywordAnalysis(BaseModel):
     semantic_keywords: List[Dict[str, Any]]  # list of {keyword: score} for most important keywords
@@ -60,7 +59,6 @@ class InsightAnalysis(BaseModel):
                         "NEGATIVE": 20,
                         "NEUTRAL": 10
                     },
-                    "confidence": 0.85
                 },
                 "keywords": {
                     "semantic_keywords": [
@@ -80,7 +78,7 @@ class InsightAnalysis(BaseModel):
             }
         }
 
-def get_sentiment(text: str) -> Tuple[str, float, float]:
+def get_sentiment(text: str) -> Tuple[str, float]:
     """
     Analyze sentiment of text using transformers pipeline.
     
@@ -88,10 +86,10 @@ def get_sentiment(text: str) -> Tuple[str, float, float]:
         text: Text to analyze
         
     Returns:
-        Tuple of (sentiment, score, confidence)
+        Tuple of (sentiment, score)
     """
     if not text:
-        return "NEUTRAL", 0.0, 0.0
+        return "NEUTRAL", 0.0
     
     try:
         # Get sentiment analysis result
@@ -100,14 +98,13 @@ def get_sentiment(text: str) -> Tuple[str, float, float]:
         # Use native transformer labels (POSITIVE/NEGATIVE)
         sentiment = result['label']
         score = result['score']
-        confidence = result['score']
         
-        print(f"Sentiment analysis for text: '{text[:50]}...' - Sentiment: {sentiment}, Score: {score}, Confidence: {confidence}")
+        print(f"Sentiment analysis for text: '{text[:50]}...' - Sentiment: {sentiment}, Score: {score}")
         
-        return sentiment, score, confidence
+        return sentiment, score
     except Exception as e:
         logger.error(f"Error in sentiment analysis: {str(e)}")
-        return "NEUTRAL", 0.0, 0.0
+        return "NEUTRAL", 0.0
 
 def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
     """
@@ -159,8 +156,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             sentiment=SentimentAnalysis(
                 overall_sentiment="NEUTRAL",
                 sentiment_score=0.0,
-                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0, "NEUTRAL": 0},
-                confidence=0.0
+                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0, "NEUTRAL": 0}
             ),
             keywords=KeywordAnalysis(
                 semantic_keywords=[],
@@ -191,25 +187,21 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     # Sentiment Analysis
     sentiments = []
     scores = []
-    confidences = []
     
     for review in reviews:
-        sentiment, score, confidence = get_sentiment(review.get('review_text', ''))
+        sentiment, score = get_sentiment(review.get('review_text', ''))
         sentiments.append(sentiment)
         scores.append(score)
-        confidences.append(confidence)
         print(f"--------------------------------")
         print(f"Review: {review.get('review_text')}")
         print(f"Rating: {review.get('rating')}")
         print('\n')
         print(f"Sentiment: {sentiment}")
         print(f"Score: {score}")
-        print(f"Confidence: {confidence}")
         print(f"--------------------------------")
         # Get sentiment scores from processed reviews
     sentiment_scores = [review.get('sentiment_score', 0) for review in reviews]
     sentiments = [review.get('sentiment', 'NEUTRAL') for review in reviews]
-    confidences = [review.get('sentiment_confidence', 0) for review in reviews]
     # Calculate overall sentiment based on normalized scores
     normalized_scores = []
     for sentiment, score in zip(sentiments, sentiment_scores):
@@ -241,7 +233,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     sentiment_counts = Counter(sentiments)
     total = len(sentiments)
     sentiment_distribution = {
-        sentiment: (count / total) * 100
+        sentiment: count  # Use raw count instead of percentage
         for sentiment, count in sentiment_counts.items()
     }
     
@@ -267,8 +259,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         sentiment=SentimentAnalysis(
             overall_sentiment=overall_sentiment,
             sentiment_score=round(normalized_avg, 2),
-            sentiment_distribution=sentiment_distribution,
-            confidence=round(sum(confidences) / len(confidences), 2)
+            sentiment_distribution=sentiment_distribution
         ),
         keywords=KeywordAnalysis(
             semantic_keywords=semantic_keywords,

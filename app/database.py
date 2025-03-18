@@ -101,7 +101,6 @@ class Database:
                     cleaned_text=review.get('review_text', ''),
                     sentiment_score=review.get('sentiment_score', 0),
                     sentiment=review.get('sentiment', 'NEUTRAL'),
-                    sentiment_confidence=review.get('sentiment_confidence', 0.0),
                     date_processed=datetime.utcnow()
                 )
                 processed_reviews.append(processed_review.dict())
