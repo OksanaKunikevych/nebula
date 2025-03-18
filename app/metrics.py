@@ -7,10 +7,11 @@ from pydantic import BaseModel
 from app.data_cleaning import clean_text
 
 class ReviewMetrics(BaseModel):
+    last_updated: datetime = datetime.utcnow()
     average_rating: float
-    rating_distribution: Dict[int, float]  # rating -> percentage
+    rating_distribution: dict[str, int]
     total_reviews: int
-    review_length_stats: Dict[str, float]  # min, max, avg length
+    review_length_stats: dict[str, float]
 
 def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
     """
@@ -26,7 +27,7 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
         logger.warning("No reviews provided for analysis")
         return ReviewMetrics(
             average_rating=0.0,
-            rating_distribution={i: 0.0 for i in range(6)},  # Initialize all ratings from 0 to 5
+            rating_distribution={str(i): 0 for i in range(6)},
             total_reviews=0,
             review_length_stats={"min": 0, "max": 0, "avg": 0},
         )
