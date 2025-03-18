@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from textblob import TextBlob
 from collections import Counter
 from pydantic import BaseModel, Field
@@ -22,6 +22,7 @@ except LookupError:
 # Get stopwords
 STOPWORDS = set(stopwords.words('english'))
 # TODO: Add custom stopwords
+# TODO: Get stopwords from Bert instead
 
 # Initialize sentiment analyzer
 sentiment_analyzer = pipeline(
@@ -47,38 +48,8 @@ class InsightAnalysis(BaseModel):
     sentiment: SentimentAnalysis
     keywords: KeywordAnalysis
     improvement_areas: List[str] = Field(default_factory=list)
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "sentiment": {
-                    "overall_sentiment": "POSITIVE",
-                    "sentiment_score": 0.75,
-                    "sentiment_distribution": {
-                        "POSITIVE": 70,
-                        "NEGATIVE": 20,
-                        "NEUTRAL": 10
-                    },
-                },
-                "keywords": {
-                    "semantic_keywords": [
-                        {"keyword": "accurate", "score": 0.8},
-                        {"keyword": "user-friendly", "score": 0.7}
-                    ],
-                    "negative_keywords": [
-                        {"keyword": "crash", "score": 0.6},
-                        {"keyword": "slow", "score": 0.5}
-                    ],
-                    "key_phrases": []
-                },
-                "improvement_areas": [
-                    "Address issues related to 'crash'",
-                    "Address issues related to 'slow'"
-                ]
-            }
-        }
 
-def get_sentiment(text: str) -> Tuple[str, float]:
+def get_sentiment(text: str) -> Tuple[Optional[str], Optional[float]]:
     """
     Analyze sentiment of text using transformers pipeline.
     
@@ -86,17 +57,18 @@ def get_sentiment(text: str) -> Tuple[str, float]:
         text: Text to analyze
         
     Returns:
-        Tuple of (sentiment, score)
+        Tuple of (sentiment, score) or (None, None) if text is empty
     """
     if not text:
-        return "NEUTRAL", 0.0
+        logger.warning("No text provided for sentiment analysis!")
+        return None, None
     
     try:
         # Get sentiment analysis result
         result = sentiment_analyzer(text[:512])[0]  # Limit text length to 512 tokens for better performance
         
         # Extract only the fields we need
-        sentiment = result.get('label', 'NEUTRAL')
+        sentiment = result.get('label', 'N/A')  # Default to N/A if label is missing
         score = result.get('score', 0.0)
         
         # Convert score to -1 to 1 range for consistency
@@ -108,7 +80,7 @@ def get_sentiment(text: str) -> Tuple[str, float]:
         return sentiment, score
     except Exception as e:
         logger.error(f"Error in sentiment analysis: {str(e)}")
-        return "NEUTRAL", 0.0
+        return None, None
 
 def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
     """
@@ -160,7 +132,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             sentiment=SentimentAnalysis(
                 overall_sentiment="NEUTRAL",
                 sentiment_score=0.0,
-                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0, "NEUTRAL": 0}
+                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
             keywords=KeywordAnalysis(
                 semantic_keywords=[],
@@ -199,53 +171,86 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         # Combine title and review text for sentiment analysis
         combined_text = f"{review.get('title', '')} {review.get('review_text', '')}"
         sentiment, score = get_sentiment(combined_text)
+        
+        # Skip if sentiment analysis failed
+        if sentiment is None or score is None:
+            logger.warning(f"Sentiment analysis failed for review: {review}")
+            continue
+            
         sentiments.append(sentiment)
         scores.append(score)
         print(f"--------------------------------")
-        print(f"Review: {review.get('review_text')}")
+        print(f"Combined text: {combined_text}")
         print(f"Rating: {review.get('rating')}")
         print('\n')
         print(f"Sentiment: {sentiment}")
         print(f"Score: {score}")
         print(f"--------------------------------")
-        # Get sentiment scores from processed reviews
-    sentiment_scores = [review.get('sentiment_score', 0) for review in reviews]
-    sentiments = [review.get('sentiment', 'NEUTRAL') for review in reviews]
-    # Calculate overall sentiment based on normalized scores
-    normalized_scores = []
-    for sentiment, score in zip(sentiments, sentiment_scores):
-        if sentiment == "POSITIVE":
-            normalized_scores.append(score)
-        else:  # NEGATIVE
-            normalized_scores.append(-score)
     
-    avg_score = sum(normalized_scores) / len(normalized_scores)
-    normalized_avg = (avg_score + 1) / 2
+    # If no valid sentiments were found, return neutral analysis
+    if not sentiments:
+        return InsightAnalysis(
+            sentiment=SentimentAnalysis(
+                overall_sentiment="N/A",
+                sentiment_score=0.0,
+                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
+            ),
+            keywords=KeywordAnalysis(
+                semantic_keywords=[],
+                negative_keywords=[],
+                key_phrases=[]
+            ),
+            improvement_areas=[]
+        )
     
-    # Determine overall sentiment with granular labels
-    if normalized_avg > 0.9:
-        overall_sentiment = "VERY_POSITIVE"
-    elif normalized_avg > 0.7:
-        overall_sentiment = "POSITIVE"
-    elif normalized_avg > 0.5:
-        overall_sentiment = "SLIGHTLY_POSITIVE"
-    elif normalized_avg == 0.5:
-        overall_sentiment = "NEUTRAL"
-    elif normalized_avg > 0.3:
-        overall_sentiment = "SLIGHTLY_NEGATIVE"
-    elif normalized_avg > 0.1:
-        overall_sentiment = "NEGATIVE"
-    else:
-        overall_sentiment = "VERY_NEGATIVE"
-
     # Calculate sentiment distribution
     sentiment_counts = Counter(sentiments)
     total = len(sentiments)
     sentiment_distribution = {
-        sentiment: count  # Use raw count instead of percentage
-        for sentiment, count in sentiment_counts.items()
+        "POSITIVE": sentiment_counts.get("POSITIVE", 0),
+        "NEGATIVE": sentiment_counts.get("NEGATIVE", 0)
     }
     
+    # Calculate overall sentiment based on normalized scores
+    normalized_scores = []
+    for sentiment, score in zip(sentiments, scores):
+        if sentiment == "POSITIVE":
+            normalized_scores.append(score)
+        else:  # NEGATIVE
+            normalized_scores.append(-score)
+    if len(normalized_scores) == 0:
+        avg_score = sum(normalized_scores) / len(normalized_scores)
+        normalized_avg = (avg_score + 1) / 2
+    else:
+        logger.warning("No valid sentiments found for sentiment analysis")
+        normalized_avg = 0.0
+        
+    # Determine overall sentiment based on both distribution and average score
+    positive_count = sentiment_distribution.get("POSITIVE", 0)
+    negative_count = sentiment_distribution.get("NEGATIVE", 0)
+    
+    # If there's a clear majority in the distribution, use that
+    if positive_count > negative_count:
+        overall_sentiment = "VERY_POSITIVE" if normalized_avg > 0.8 else "POSITIVE"
+    elif negative_count > positive_count:
+        overall_sentiment = "VERY_NEGATIVE" if normalized_avg < 0.2 else "NEGATIVE"
+    else:
+        # If equal counts, use the normalized average
+        if normalized_avg > 0.9:
+            overall_sentiment = "VERY_POSITIVE"
+        elif normalized_avg > 0.7:
+            overall_sentiment = "POSITIVE"
+        elif normalized_avg > 0.5:
+            overall_sentiment = "SLIGHTLY_POSITIVE"
+        elif normalized_avg == 0.5:
+            overall_sentiment = "NEUTRAL"
+        elif normalized_avg > 0.3:
+            overall_sentiment = "SLIGHTLY_NEGATIVE"
+        elif normalized_avg > 0.1:
+            overall_sentiment = "NEGATIVE"
+        else:
+            overall_sentiment = "VERY_NEGATIVE"
+
     # Keyword Analysis
     logger.info("Starting keyword analysis...")
     
