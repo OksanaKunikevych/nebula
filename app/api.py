@@ -49,7 +49,7 @@ async def get_raw_reviews(
         raw_reviews = get_reviews(app_name, app_id, limit)
 
         if not raw_reviews:
-            raise HTTPException(status_code=404, detail="No reviews found for this app")
+            raise HTTPException(status_code=404, detail="No reviews found for this app. Please make sure the app ID is correct.")
         
         # Convert reviews to JSON string
         json_data = json.dumps(raw_reviews, indent=2, default=str)

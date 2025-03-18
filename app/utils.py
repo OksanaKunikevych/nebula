@@ -11,6 +11,19 @@ from unidecode import unidecode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def validate_app_id(app_id: str) -> None:
+    """
+    Validate that the app_id is numeric.
+    
+    Args:
+        app_id: The App Store ID to validate
+        
+    Raises:
+        ValueError: If the app_id is not numeric
+    """
+    if not app_id.isdigit():
+        raise ValueError(f"Invalid app_id: {app_id}. App Store ID must be numeric.")
+
 def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us") -> List[Dict[str, Any]]:
     """
     Get reviews from App Store for a specific app.
@@ -18,30 +31,28 @@ def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us
     Args:
         app_name: Name of the app to collect reviews for
         app_id: App Store ID of the app
-        limit: Maximum number of reviews to collect (default: 100)
+        limit: Maximum number of reviews to collect
         country: Country code for the App Store (default: "us")
         
     Returns:
         List of review dictionaries
+        
+    Raises:
+        ValueError: If app_id is not numeric
     """
     try:
+        # Validate app_id
+        validate_app_id(app_id)
+        
         logger.info(f"Initializing AppStore scraper for {app_name} (ID: {app_id})")
         app_store = AppStore(country=country, app_name=app_name, app_id=app_id)
         
         logger.info("Starting review collection...")
-         # Collect more reviews to ensure we have enough for random selection
+        # Collect more reviews to ensure we have enough for random selection
         app_store.review(how_many=limit * 2)
         # Get raw reviews
         raw_reviews = app_store.reviews
         logger.info(f"Found {len(raw_reviews)} total reviews")
-
-        # Sort by date:
-        # sorted_reviews = sorted(
-        #     app_store.reviews,
-        #     key=lambda x: x.get('date', datetime.min),
-        #     reverse=True
-        # )
-        # selected_reviews = sorted_reviews[:limit]
         
         # Debug: Print structure of first review
         if raw_reviews:
