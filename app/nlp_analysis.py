@@ -1,10 +1,15 @@
 from typing import List, Dict, Any, Tuple
 from textblob import TextBlob
 from collections import Counter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import nltk
 from nltk.corpus import stopwords
 from transformers import pipeline
+from keybert import KeyBERT
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Download required NLTK data
 try:
@@ -25,6 +30,9 @@ sentiment_analyzer = pipeline(
     device=-1  # Use CPU for better compatibility
 )
 
+# Initialize KeyBERT for keyword extraction
+keybert_model = KeyBERT()
+
 class SentimentAnalysis(BaseModel):
     overall_sentiment: str  # POSITIVE, NEGATIVE, or NEUTRAL
     sentiment_score: float  # 0 to 1
@@ -32,16 +40,45 @@ class SentimentAnalysis(BaseModel):
     confidence: float  # confidence in the sentiment analysis
 
 class KeywordAnalysis(BaseModel):
-    common_keywords: List[Dict[str, Any]]  # list of {word: count} for most common words
-    negative_keywords: List[Dict[str, Any]]  # list of {word: count} for negative reviews
+    semantic_keywords: List[Dict[str, Any]]  # list of {keyword: score} for most important keywords
+    negative_keywords: List[Dict[str, Any]]  # list of {keyword: score} for negative reviews
     key_phrases: List[str]  # important phrases extracted from reviews
 
 class InsightAnalysis(BaseModel):
     sentiment: SentimentAnalysis
-    # keywords: KeywordAnalysis
-    # improvement_areas: List[str]  # suggested areas for improvement
-    # strengths: List[str]  # identified strengths
-    # weaknesses: List[str]  # identified weaknesses
+    keywords: KeywordAnalysis
+    improvement_areas: List[str] = Field(default_factory=list)
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "sentiment": {
+                    "overall_sentiment": "POSITIVE",
+                    "sentiment_score": 0.75,
+                    "sentiment_distribution": {
+                        "POSITIVE": 70,
+                        "NEGATIVE": 20,
+                        "NEUTRAL": 10
+                    },
+                    "confidence": 0.85
+                },
+                "keywords": {
+                    "semantic_keywords": [
+                        {"keyword": "accurate", "score": 0.8},
+                        {"keyword": "user-friendly", "score": 0.7}
+                    ],
+                    "negative_keywords": [
+                        {"keyword": "crash", "score": 0.6},
+                        {"keyword": "slow", "score": 0.5}
+                    ],
+                    "key_phrases": []
+                },
+                "improvement_areas": [
+                    "Address issues related to 'crash'",
+                    "Address issues related to 'slow'"
+                ]
+            }
+        }
 
 def get_sentiment(text: str) -> Tuple[str, float, float]:
     """
@@ -58,7 +95,7 @@ def get_sentiment(text: str) -> Tuple[str, float, float]:
     
     try:
         # Get sentiment analysis result
-        result = sentiment_analyzer(text[:512])[0]  # Limit text length to 512 tokens
+        result = sentiment_analyzer(text[:512])[0]  # Limit text length to 512 tokens for better performance
         
         # Use native transformer labels (POSITIVE/NEGATIVE)
         sentiment = result['label']
@@ -69,80 +106,44 @@ def get_sentiment(text: str) -> Tuple[str, float, float]:
         
         return sentiment, score, confidence
     except Exception as e:
-        print(f"Error in sentiment analysis: {str(e)}")
+        logger.error(f"Error in sentiment analysis: {str(e)}")
         return "NEUTRAL", 0.0, 0.0
 
 def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
     """
-    Extract important keywords from text using TextBlob.
+    Extract semantic keywords using KeyBERT.
     
     Args:
         text: Text to analyze
-        top_n: Number of top keywords to return
+        top_n: Number of keywords to extract
         
     Returns:
-        List of dictionaries with word and count
+        List of dictionaries containing keywords and their scores
     """
     if not text:
         return []
     
     try:
-        # Use TextBlob for tokenization and part-of-speech tagging
-        blob = TextBlob(text.lower())
+        # Extract keywords with KeyBERT
+        # TODO: try with other embedding models: https://github.com/MaartenGr/KeyBERT
+        keywords = keybert_model.extract_keywords(
+            text,
+            keyphrase_ngram_range=(1, 3),  # Extract single words and phrases up to 3 words
+            stop_words='english',
+            top_n=top_n
+        )
         
-        # Get words and their parts of speech, excluding stopwords
-        words = [word for word, tag in blob.tags 
-                if tag.startswith(('NN', 'JJ', 'VB'))  # Nouns, adjectives, verbs
-                and len(word) > 2
-                and word not in STOPWORDS]  # Exclude stopwords
-        
-        # Count frequencies
-        word_freq = Counter(words)
-        
-        # Return top N keywords
-        result = [
-            {"word": word, "count": count}
-            for word, count in word_freq.most_common(top_n)
+        # Convert to list of dictionaries
+        return [
+            {"keyword": keyword, "score": score}
+            for keyword, score in keywords
         ]
-        print(f"Extracted keywords: {result}")
-        return result
     except Exception as e:
-        print(f"Error in keyword extraction: {str(e)}")
+        logger.error(f"Error in keyword extraction: {str(e)}")
         return []
 
-def extract_key_phrases(text: str, top_n: int = 5) -> List[str]:
-    """
-    Extract important phrases from text using TextBlob.
-    
-    Args:
-        text: Text to analyze
-        top_n: Number of top phrases to return
-        
-    Returns:
-        List of important phrases
-    """
-    if not text:
-        return []
-    
-    try:
-        # Use TextBlob for noun phrases
-        blob = TextBlob(text)
-        phrases = blob.noun_phrases
-        
-        # Filter and sort phrases
-        filtered_phrases = [
-            phrase for phrase in phrases
-            if len(phrase.split()) >= 4  # Only multi-word phrases
-        ]
-        
-        result = filtered_phrases[:top_n]
-        print(f"Extracted key phrases: {result}")
-        return result
-    except Exception as e:
-        print(f"Error in phrase extraction: {str(e)}")
-        return []
 
-def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
+def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     """
     Perform comprehensive NLP analysis on reviews.
     
@@ -153,7 +154,7 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         InsightAnalysis object with sentiment, keywords, and insights
     """
     if not reviews:
-        print("No reviews to analyze")
+        logger.info("No reviews to analyze")
         return InsightAnalysis(
             sentiment=SentimentAnalysis(
                 overall_sentiment="NEUTRAL",
@@ -161,28 +162,31 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0, "NEUTRAL": 0},
                 confidence=0.0
             ),
-            # keywords=KeywordAnalysis(
-            #     common_keywords=[],
-            #     negative_keywords=[],
-            #     key_phrases=[]
-            # ),
-            # improvement_areas=[],
-            # strengths=[],
-            # weaknesses=[]
+            keywords=KeywordAnalysis(
+                semantic_keywords=[],
+                negative_keywords=[],
+                key_phrases=[]
+            ),
+            improvement_areas=[]
         )
     
-    print(f"Analyzing {len(reviews)} reviews")
+    logger.info(f"Analyzing {len(reviews)} reviews")
+    
+    # Separate negative reviews (rating <= 2)
+    negative_reviews = [
+        review for review in reviews
+        if review.get('rating', 0) <= 2
+    ]
     
     # Combine all review texts
     all_text = " ".join(review.get('review_text', '') for review in reviews)
-    # negative_text = " ".join(
-    #     review.get('review_text', '')
-    #     for review in reviews
-    #     if review.get('rating', 0) <= 2
-    # )
+    negative_text = " ".join(
+        review.get('review_text', '')
+        for review in negative_reviews
+    )
     
-    print(f"Combined text length: {len(all_text)}")
-    print(f"Sample of combined text: {all_text[:200]}...")
+    logger.info(f"Combined text length: {len(all_text)}")
+    logger.info(f"Negative reviews count: {len(negative_reviews)}")
     
     # Sentiment Analysis
     sentiments = []
@@ -202,26 +206,21 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         print(f"Score: {score}")
         print(f"Confidence: {confidence}")
         print(f"--------------------------------")
-    
+        # Get sentiment scores from processed reviews
+    sentiment_scores = [review.get('sentiment_score', 0) for review in reviews]
+    sentiments = [review.get('sentiment', 'NEUTRAL') for review in reviews]
+    confidences = [review.get('sentiment_confidence', 0) for review in reviews]
     # Calculate overall sentiment based on normalized scores
-    # Transform scores: POSITIVE (close to 1) -> 1, NEGATIVE (close to 0) -> -1
     normalized_scores = []
-    for sentiment, score in zip(sentiments, scores):
+    for sentiment, score in zip(sentiments, sentiment_scores):
         if sentiment == "POSITIVE":
             normalized_scores.append(score)
         else:  # NEGATIVE
             normalized_scores.append(-score)
     
     avg_score = sum(normalized_scores) / len(normalized_scores)
-    # Convert back to 0-1 scale for consistency
     normalized_avg = (avg_score + 1) / 2
     
-    print(f"==========================================")
-    print(f"sum(scores): {sum(scores)}")
-    print(f"len(scores): {len(scores)}")
-    print(f"avg_score: {avg_score}")
-    print(f"==========================================")
-
     # Determine overall sentiment with granular labels
     if normalized_avg > 0.9:
         overall_sentiment = "VERY_POSITIVE"
@@ -237,9 +236,7 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         overall_sentiment = "NEGATIVE"
     else:
         overall_sentiment = "VERY_NEGATIVE"
-    
-    print(f"Overall sentiment: {overall_sentiment} (score: {normalized_avg})")
-    
+
     # Calculate sentiment distribution
     sentiment_counts = Counter(sentiments)
     total = len(sentiments)
@@ -248,46 +245,23 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         for sentiment, count in sentiment_counts.items()
     }
     
-    print(f"Sentiment distribution: {sentiment_distribution}")
-    
     # Keyword Analysis
-    # print("\nStarting keyword analysis...")
-    # common_keywords = extract_keywords(all_text)
+    logger.info("Starting keyword analysis...")
+    semantic_keywords = extract_keywords(all_text)
     
-    # # Negative keywords analysis
-    # print("\nStarting negative keyword analysis...")
-    # negative_keywords = extract_keywords(negative_text)
+    # Negative keywords analysis
+    logger.info("Starting negative keyword analysis...")
+    negative_keywords = extract_keywords(negative_text)
     
-    # # Key phrases analysis
-    # print("\nStarting key phrase analysis...")
-    # key_phrases = extract_key_phrases(all_text)
+    # Generate Insights
+    improvement_areas = []
     
-    # # Generate Insights
-    # improvement_areas = []
-    # strengths = []
-    # weaknesses = []
+    # Analyze negative keywords for improvement areas
+    for keyword in negative_keywords:
+        if keyword['score'] > 0.3:  # Only consider significant keywords
+            improvement_areas.append(f"Address issues related to '{keyword['keyword']}'")
     
-    # # Analyze negative keywords for improvement areas
-    # for keyword in negative_keywords:
-    #     if keyword['count'] > 6:  # Only consider frequently mentioned issues
-    #         improvement_areas.append(f"Address issues related to '{keyword['word']}'")
-    
-    # # Analyze sentiment for strengths and weaknesses
-    # positive_phrases = [
-    #     phrase for phrase in key_phrases
-    #     if get_sentiment(phrase)[0] == "positive"
-    # ]
-    # negative_phrases = [
-    #     phrase for phrase in key_phrases
-    #     if get_sentiment(phrase)[0] == "negative"
-    # ]
-    
-    # strengths.extend(positive_phrases[:3])
-    # weaknesses.extend(negative_phrases[:3])
-    
-    # print(f"Found {len(improvement_areas)} improvement areas")
-    # print(f"Found {len(strengths)} strengths")
-    # print(f"Found {len(weaknesses)} weaknesses")
+    logger.info(f"Found {len(improvement_areas)} improvement areas")
     
     return InsightAnalysis(
         sentiment=SentimentAnalysis(
@@ -296,12 +270,10 @@ def analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             sentiment_distribution=sentiment_distribution,
             confidence=round(sum(confidences) / len(confidences), 2)
         ),
-        # keywords=KeywordAnalysis(
-        #     common_keywords=common_keywords,
-        #     negative_keywords=negative_keywords,
-        #     key_phrases=key_phrases
-        # ),
-        # improvement_areas=improvement_areas,
-        # strengths=strengths,
-        # weaknesses=weaknesses
+        keywords=KeywordAnalysis(
+            semantic_keywords=semantic_keywords,
+            negative_keywords=negative_keywords,
+            key_phrases=[]  # TODO: add key phrases extraction
+        ),
+        improvement_areas=improvement_areas
     ) 

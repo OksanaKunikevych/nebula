@@ -3,7 +3,6 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 class RawReview(BaseModel):
-    id: int = Field(..., description="Unique review ID")
     app_id: str = Field(..., description="App identifier")
     app_name: str = Field(..., description="Name of the app")
     review_text: str = Field(..., description="Raw review text")
@@ -13,7 +12,6 @@ class RawReview(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "id": 1,
                 "app_id": "1459969523",
                 "app_name": "Nebula Horoscope",
                 "review_text": "🔥 Love it! Best horoscope app.",
@@ -23,21 +21,21 @@ class RawReview(BaseModel):
         }
 
 class ProcessedReview(BaseModel):
-    id: int = Field(..., description="Unique review ID")
     app_id: str = Field(..., description="App identifier")
     cleaned_text: str = Field(..., description="Processed review text")
     sentiment_score: float = Field(..., ge=-1, le=1, description="Sentiment analysis score (-1 to 1)")
-    sentiment: str = Field(..., description="Sentiment label (POSITIVE, NEGATIVE)")
+    sentiment: str = Field(..., description="Sentiment label (POSITIVE, NEGATIVE, NEUTRAL)")
+    sentiment_confidence: float = Field(..., ge=0, le=1, description="Confidence score for sentiment analysis (0 to 1)")
     date_processed: datetime = Field(default_factory=datetime.utcnow, description="Timestamp when review was processed")
     
     class Config:
         schema_extra = {
             "example": {
-                "id": 1,
                 "app_id": "1459969523",
                 "cleaned_text": "Love it! Best horoscope app.",
                 "sentiment_score": 0.9,
                 "sentiment": "POSITIVE",
+                "sentiment_confidence": 0.917,
                 "date_processed": "2024-03-17T12:00:00Z"
             }
         }

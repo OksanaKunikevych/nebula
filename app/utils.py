@@ -49,7 +49,8 @@ def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us
         
         logger.info("Starting review collection...")
         # Collect more reviews to ensure we have enough for random selection
-        app_store.review(how_many=limit * 2)
+        #app_store.review(how_many=limit * 2)
+        app_store.review(how_many=limit)
         # Get raw reviews
         raw_reviews = app_store.reviews
         logger.info(f"Found {len(raw_reviews)} total reviews")

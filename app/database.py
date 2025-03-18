@@ -2,7 +2,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 from typing import List, Optional
 import logging
+from bson import ObjectId
 from .models import RawReview, ProcessedReview, ReviewMetrics
+from .nlp_analysis import InsightAnalysis
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -17,6 +19,7 @@ class Database:
             self.raw_reviews = self.db.raw_reviews
             self.processed_reviews = self.db.processed_reviews
             self.metrics = self.db.metrics
+            self.insights = self.db.insights
             logger.info("Successfully connected to MongoDB")
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
@@ -24,6 +27,24 @@ class Database:
                 "Could not connect to MongoDB. Please ensure MongoDB is running locally "
                 "or provide a valid MongoDB connection URL in the environment variables."
             )
+
+    def _convert_to_dict(self, data: dict) -> dict:
+        """Convert MongoDB document to JSON-serializable dictionary."""
+        if not data:
+            return {}
+        
+        # Convert ObjectId to string
+        if '_id' in data:
+            data['_id'] = str(data['_id'])
+        
+        # Convert datetime to ISO format string
+        for key, value in data.items():
+            if isinstance(value, datetime):
+                data[key] = value.isoformat()
+            elif isinstance(value, ObjectId):
+                data[key] = str(value)
+        
+        return data
 
     async def save_raw_reviews(self, app_id: str, app_name: str, reviews: List[dict]) -> int:
         """
@@ -40,9 +61,8 @@ class Database:
         try:
             # Convert reviews to RawReview models
             raw_reviews = []
-            for i, review in enumerate(reviews, 1):
+            for review in reviews:
                 raw_review = RawReview(
-                    id=i,
                     app_id=app_id,
                     app_name=app_name,
                     review_text=review.get('review', ''),
@@ -75,13 +95,13 @@ class Database:
         try:
             # Convert reviews to ProcessedReview models
             processed_reviews = []
-            for i, review in enumerate(reviews, 1):
+            for review in reviews:
                 processed_review = ProcessedReview(
-                    id=i,
                     app_id=app_id,
                     cleaned_text=review.get('review_text', ''),
                     sentiment_score=review.get('sentiment_score', 0),
                     sentiment=review.get('sentiment', 'NEUTRAL'),
+                    sentiment_confidence=review.get('sentiment_confidence', 0.0),
                     date_processed=datetime.utcnow()
                 )
                 processed_reviews.append(processed_review.dict())
@@ -120,6 +140,31 @@ class Database:
             logger.error(f"Error saving metrics: {str(e)}")
             raise
 
+    async def save_insights(self, app_id: str, insights: InsightAnalysis) -> None:
+        """
+        Save or update insights for an app.
+        
+        Args:
+            app_id: App Store ID
+            insights: InsightAnalysis object containing NLP insights
+        """
+        try:
+            # Convert InsightAnalysis to dict and add app_id
+            insights_data = insights.dict()
+            insights_data["app_id"] = app_id
+            insights_data["last_updated"] = datetime.utcnow()
+            
+            # Update or insert insights
+            await self.insights.update_one(
+                {"app_id": app_id},
+                {"$set": insights_data},
+                upsert=True
+            )
+            logger.info(f"Saved insights for app {app_id}")
+        except Exception as e:
+            logger.error(f"Error saving insights: {str(e)}")
+            raise
+
     async def get_raw_reviews(self, app_id: str, limit: int = 100) -> List[dict]:
         """
         Get raw reviews for an app.
@@ -134,7 +179,7 @@ class Database:
         try:
             cursor = self.raw_reviews.find({"app_id": app_id}).limit(limit)
             reviews = await cursor.to_list(length=limit)
-            return reviews
+            return [self._convert_to_dict(review) for review in reviews]
         except Exception as e:
             logger.error(f"Error getting raw reviews: {str(e)}")
             raise
@@ -153,7 +198,7 @@ class Database:
         try:
             cursor = self.processed_reviews.find({"app_id": app_id}).limit(limit)
             reviews = await cursor.to_list(length=limit)
-            return reviews
+            return [self._convert_to_dict(review) for review in reviews]
         except Exception as e:
             logger.error(f"Error getting processed reviews: {str(e)}")
             raise
@@ -170,7 +215,24 @@ class Database:
         """
         try:
             metrics = await self.metrics.find_one({"app_id": app_id})
-            return metrics
+            return self._convert_to_dict(metrics)
         except Exception as e:
             logger.error(f"Error getting metrics: {str(e)}")
+            raise
+
+    async def get_insights(self, app_id: str) -> Optional[dict]:
+        """
+        Get insights for an app.
+        
+        Args:
+            app_id: App Store ID
+            
+        Returns:
+            Dictionary containing insights data
+        """
+        try:
+            insights = await self.insights.find_one({"app_id": app_id})
+            return self._convert_to_dict(insights)
+        except Exception as e:
+            logger.error(f"Error getting insights: {str(e)}")
             raise 

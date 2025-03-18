@@ -1,3 +1,4 @@
+from asyncio.log import logger
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime
@@ -9,6 +10,7 @@ from .metrics import calculate_metrics
 from .utils import get_reviews, clean_reviews, validate_app_id
 from .database import Database
 from .models import RawReview, ProcessedReview, ReviewMetrics
+from .nlp_analysis import nlp_analyze_reviews, get_sentiment
 
 router = APIRouter()
 
@@ -47,14 +49,25 @@ async def collect_reviews(
         # Clean and process reviews
         processed_reviews = clean_reviews(raw_reviews)
         
+        # Add sentiment analysis to processed reviews
+        for review in processed_reviews:
+            sentiment, score, confidence = get_sentiment(review.get('review_text', ''))
+            review['sentiment'] = sentiment
+            review['sentiment_score'] = score
+            review['sentiment_confidence'] = confidence
+        
         # Save processed reviews
         processed_count = await db.save_processed_reviews(app_id, processed_reviews)
         
         # Calculate metrics
         metrics = calculate_metrics(processed_reviews)
         
-        # Save metrics
+        # Perform NLP analysis
+        insights = nlp_analyze_reviews(processed_reviews)
+        
+        # Save metrics and insights
         await db.save_metrics(app_id, metrics)
+        await db.save_insights(app_id, insights)
         
         return {
             "status": "success",
@@ -62,7 +75,8 @@ async def collect_reviews(
             "data": {
                 "raw_reviews_count": raw_count,
                 "processed_reviews_count": processed_count,
-                "metrics": metrics
+                "metrics": metrics,
+                "insights": insights
             }
         }
     except HTTPException:
@@ -139,7 +153,7 @@ async def get_app_metrics(
     app_id: str
 ):
     """
-    Get metrics for a specific app's reviews.
+    Get metrics and insights for a specific app's reviews.
     """
     try:
         # Validate app_id
@@ -148,13 +162,19 @@ async def get_app_metrics(
         # Get metrics from database
         metrics = await db.get_metrics(app_id)
         
+        # Get insights from database
+        insights = await db.get_insights(app_id)
+        
         if not metrics:
             raise HTTPException(status_code=404, detail="No metrics found for this app")
         
         return {
             "status": "success",
-            "message": "Successfully retrieved metrics",
-            "data": metrics
+            "message": "Successfully retrieved metrics and insights",
+            "data": {
+                "metrics": metrics,
+                "insights": insights
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
