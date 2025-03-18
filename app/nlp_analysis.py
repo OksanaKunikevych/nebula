@@ -95,10 +95,14 @@ def get_sentiment(text: str) -> Tuple[str, float]:
         # Get sentiment analysis result
         result = sentiment_analyzer(text[:512])[0]  # Limit text length to 512 tokens for better performance
         
-        # Use native transformer labels (POSITIVE/NEGATIVE)
-        sentiment = result['label']
-        score = result['score']
+        # Extract only the fields we need
+        sentiment = result.get('label', 'NEUTRAL')
+        score = result.get('score', 0.0)
         
+        # Convert score to -1 to 1 range for consistency
+        if sentiment == "NEGATIVE":
+            score = -score
+
         print(f"Sentiment analysis for text: '{text[:50]}...' - Sentiment: {sentiment}, Score: {score}")
         
         return sentiment, score

@@ -22,7 +22,7 @@ class RawReview(BaseModel):
 
 class ProcessedReview(BaseModel):
     app_id: str = Field(..., description="App identifier")
-    cleaned_text: str = Field(..., description="Processed review text")
+    review_text: str = Field(..., description="Processed review text")
     sentiment_score: float = Field(..., ge=-1, le=1, description="Sentiment analysis score (-1 to 1)")
     sentiment: str = Field(..., description="Sentiment label (POSITIVE, NEGATIVE, NEUTRAL)")
     date_processed: datetime = Field(default_factory=datetime.utcnow, description="Timestamp when review was processed")
@@ -31,7 +31,7 @@ class ProcessedReview(BaseModel):
         schema_extra = {
             "example": {
                 "app_id": "1459969523",
-                "cleaned_text": "Love it! Best horoscope app.",
+                "review_text": "Love it! Best horoscope app.",
                 "sentiment_score": 0.9,
                 "sentiment": "POSITIVE",
                 "date_processed": "2024-03-17T12:00:00Z"

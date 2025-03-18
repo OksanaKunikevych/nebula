@@ -98,7 +98,7 @@ class Database:
             for review in reviews:
                 processed_review = ProcessedReview(
                     app_id=app_id,
-                    cleaned_text=review.get('review_text', ''),
+                    review_text=review.get('review_text', ''),
                     sentiment_score=review.get('sentiment_score', 0),
                     sentiment=review.get('sentiment', 'NEUTRAL'),
                     date_processed=datetime.utcnow()
