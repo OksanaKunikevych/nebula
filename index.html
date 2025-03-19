@@ -394,16 +394,16 @@
             document.getElementById('averageRating').textContent = data.data.metrics.average_rating.toFixed(1);
             
             const overallSentimentElement = document.getElementById('overallSentiment');
-            overallSentimentElement.textContent = data.data.insights.sentiment.overall_sentiment;
-            overallSentimentElement.className = `stat-value ${data.data.insights.sentiment.overall_sentiment === 'POSITIVE' ? 'positive' : 'negative'}`;
+            overallSentimentElement.textContent = data.data.insights.overall_sentiment;
+            overallSentimentElement.className = `stat-value ${data.data.insights.overall_sentiment === 'POSITIVE' ? 'positive' : 'negative'}`;
             
             const sentimentScoreElement = document.getElementById('sentimentScore');
-            sentimentScoreElement.textContent = data.data.insights.sentiment.sentiment_score.toFixed(2);
-            sentimentScoreElement.className = `stat-value ${data.data.insights.sentiment.sentiment_score >= 0 ? 'positive' : 'negative'}`;
+            sentimentScoreElement.textContent = data.data.insights.sentiment_score.toFixed(2);
+            sentimentScoreElement.className = `stat-value ${data.data.insights.sentiment_score >= 0 ? 'positive' : 'negative'}`;
 
             // Sentiment Distribution Chart
             const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
-            const sentimentData = data.data.insights.sentiment.sentiment_distribution || {
+            const sentimentData = data.data.insights.sentiment_distribution || {
                 POSITIVE: 0,
                 NEGATIVE: 0
             };
