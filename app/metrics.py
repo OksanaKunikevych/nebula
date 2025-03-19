@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
     """
-    Calculate averae rating and rating distribution metrics from the reviews.
+    Calculate simple metrics from the reviews:
+    - Average rating
+    - Rating distribution
+    - Review length statistics
     
     Args:
         reviews: List of review dictionaries
@@ -26,10 +29,7 @@ def calculate_metrics(reviews: List[Dict[str, Any]]) -> ReviewMetrics:
             average_rating=0.0,
             rating_distribution={str(i): 0 for i in range(6)},
             total_reviews=0,
-            review_length_stats={"min": 0, "max": 0, "avg": 0},
-            overall_sentiment="N/A",
-            overall_sentiment_score=0.0,
-            sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
+            review_length_stats={"min": 0, "max": 0, "avg": 0}
         )
     
     # Calculate rating metrics

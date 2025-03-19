@@ -7,6 +7,9 @@ from nltk.corpus import stopwords
 from transformers import pipeline
 from keybert import KeyBERT
 import logging
+from datetime import datetime
+
+from .models import InsightsMetrics
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -113,7 +116,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
         return []
 
 
-def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
+def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
     """
     Perform comprehensive NLP analysis on reviews.
     
@@ -121,19 +124,15 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         reviews: List of review dictionaries
         
     Returns:
-        InsightAnalysis object with sentiment, keywords, and insights
+        InsightsMetrics object with sentiment, keywords, and insights
     """
     if not reviews:
         logger.info("No reviews to analyze")
-        return InsightAnalysis(
-            sentiment=SentimentAnalysis(
-                overall_sentiment="N/A",
-                sentiment_score=0.0,
-                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
-            ),
-            keywords=KeywordAnalysis(
-                negative_keywords=[]
-            ),
+        return InsightsMetrics(
+            overall_sentiment="N/A",
+            sentiment_score=0.0,
+            sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
+            negative_keywords=[],
             improvement_areas=[]
         )
     
@@ -165,15 +164,11 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     
     # If no valid sentiments were found, return neutral analysis
     if not sentiments:
-        return InsightAnalysis(
-            sentiment=SentimentAnalysis(
-                overall_sentiment="N/A",
-                sentiment_score=0.0,
-                sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
-            ),
-            keywords=KeywordAnalysis(
-                negative_keywords=[]
-            ),
+        return InsightsMetrics(
+            overall_sentiment="N/A",
+            sentiment_score=0.0,
+            sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
+            negative_keywords=[],
             improvement_areas=[]
         )
     
@@ -201,7 +196,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     elif negative_count > positive_count:
         overall_sentiment = "VERY_NEGATIVE" if avg_score < -0.8 else "NEGATIVE"
     else:
-        # Map scores to sentiment categories based on magnitude and sign
+        # Map scores to sentiment categories
         score_magnitude = abs(avg_score)
         if score_magnitude > 0.8:
             overall_sentiment = "VERY_" + ("POSITIVE" if avg_score > 0 else "NEGATIVE")
@@ -228,14 +223,10 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     
     logger.info(f"Generated {len(improvement_areas)} improvement areas")
     
-    return InsightAnalysis(
-        sentiment=SentimentAnalysis(
-            overall_sentiment=overall_sentiment,
-            sentiment_score=round(avg_score, 2),
-            sentiment_distribution=sentiment_distribution
-        ),
-        keywords=KeywordAnalysis(
-            negative_keywords=negative_keywords,
-        ),
+    return InsightsMetrics(
+        overall_sentiment=overall_sentiment,
+        sentiment_score=round(avg_score, 2),
+        sentiment_distribution=sentiment_distribution,
+        negative_keywords=negative_keywords,
         improvement_areas=improvement_areas
     ) 

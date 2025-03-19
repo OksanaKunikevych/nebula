@@ -43,39 +43,30 @@ class ProcessedReview(BaseModel):
         }
 
 class ReviewMetrics(BaseModel):
+    """Model for storing review metrics."""
     last_updated: datetime = Field(default_factory=datetime.utcnow)
     average_rating: float
-    rating_distribution: dict[str, int]
+    rating_distribution: Dict[str, int]  # distribution of ratings (1-5)
     total_reviews: int
-    review_length_stats: dict[str, float]
-    overall_sentiment: str
-    overall_sentiment_score: float
-    sentiment_distribution: dict[str, int]
-    
+    review_length_stats: Dict[str, float]  # min, max, avg lengths
+
     class Config:
         schema_extra = {
             "example": {
-                "last_updated": "2024-03-17T12:00:00Z",
+                "last_updated": "2024-03-20T12:00:00",
                 "average_rating": 4.5,
                 "rating_distribution": {
-                    "0": 0,
-                    "1": 0,
-                    "2": 0,
-                    "3": 0,
-                    "4": 0,
-                    "5": 100
+                    "1": 5,
+                    "2": 10,
+                    "3": 15,
+                    "4": 30,
+                    "5": 40
                 },
                 "total_reviews": 100,
                 "review_length_stats": {
                     "min": 10,
-                    "max": 1000,
-                    "avg": 100.5
-                },
-                "overall_sentiment": "POSITIVE",
-                "overall_sentiment_score": 0.8,
-                "sentiment_distribution": {
-                    "POSITIVE": 80,
-                    "NEGATIVE": 20
+                    "max": 500,
+                    "avg": 150.5
                 }
             }
         }
@@ -90,7 +81,72 @@ class RawReviewResponse(BaseModel):
     message: str
     data: List[Dict[str, Any]]
 
+class InsightsMetrics(BaseModel):
+    """Model for storing NLP-based insights metrics."""
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    overall_sentiment: str
+    sentiment_score: float
+    sentiment_distribution: Dict[str, int]
+    negative_keywords: List[str]
+    improvement_areas: List[str]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "last_updated": "2024-03-20T12:00:00",
+                "overall_sentiment": "POSITIVE",
+                "sentiment_score": 0.85,
+                "sentiment_distribution": {
+                    "POSITIVE": 80,
+                    "NEGATIVE": 20
+                },
+                "negative_keywords": ["crash", "slow", "bug"],
+                "improvement_areas": [
+                    "Address issues related to 'crash'",
+                    "Address issues related to 'slow'",
+                    "Address issues related to 'bug'"
+                ]
+            }
+        }
+
 class MetricsResponse(BaseModel):
     status: str
     message: str
-    data: ReviewMetrics 
+    data: Dict[str, Any] = Field(
+        ...,
+        description="Dictionary containing both review metrics and insights metrics",
+        example={
+            "metrics": {
+                "last_updated": "2024-03-20T12:00:00",
+                "average_rating": 4.5,
+                "rating_distribution": {
+                    "1": 5,
+                    "2": 10,
+                    "3": 15,
+                    "4": 30,
+                    "5": 40
+                },
+                "total_reviews": 100,
+                "review_length_stats": {
+                    "min": 10,
+                    "max": 500,
+                    "avg": 150.5
+                }
+            },
+            "insights": {
+                "last_updated": "2024-03-20T12:00:00",
+                "overall_sentiment": "POSITIVE",
+                "sentiment_score": 0.8,
+                "sentiment_distribution": {
+                    "POSITIVE": 80,
+                    "NEGATIVE": 20
+                },
+                "negative_keywords": ["crash", "slow", "bug"],
+                "improvement_areas": [
+                    "Address issues related to 'crash'",
+                    "Address issues related to 'slow'",
+                    "Address issues related to 'bug'"
+                ]
+            }
+        }
+    ) 

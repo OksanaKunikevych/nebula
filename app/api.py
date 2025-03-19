@@ -9,7 +9,10 @@ from fastapi.responses import StreamingResponse
 from .metrics import calculate_metrics
 from .utils import get_reviews, clean_reviews, validate_app_id
 from .database import Database
-from .models import RawReview, ProcessedReview, ReviewMetrics
+from .models import (
+    RawReview, ProcessedReview, ReviewMetrics,
+    InsightsMetrics, MetricsResponse, ReviewResponse, RawReviewResponse
+)
 from .nlp_analysis import nlp_analyze_reviews, get_sentiment
 
 router = APIRouter()
@@ -74,8 +77,8 @@ async def collect_reviews(
             "data": {
                 "raw_reviews_count": raw_count,
                 "processed_reviews_count": processed_count,
-                "metrics": metrics,
-                "insights": insights
+                "metrics": metrics.dict(),
+                "insights": insights.dict()
             }
         }
     except HTTPException:
@@ -97,6 +100,9 @@ async def get_raw_reviews(
         
         # Get raw reviews from database
         reviews = await db.get_raw_reviews(app_id, limit)
+
+        if not reviews:
+            raise HTTPException(status_code=404, detail="No reviews found for this app")
         
         # Convert to JSON string
         json_data = json.dumps({
@@ -115,8 +121,7 @@ async def get_raw_reviews(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.get("/reviews/{app_id}/metrics")
+@router.get("/reviews/{app_id}/metrics", response_model=MetricsResponse)
 async def get_app_metrics(
     app_id: str
 ):
@@ -136,13 +141,13 @@ async def get_app_metrics(
         if not metrics:
             raise HTTPException(status_code=404, detail="No metrics found for this app")
         
-        return {
-            "status": "success",
-            "message": "Successfully retrieved metrics and insights",
-            "data": {
+        return MetricsResponse(
+            status="success",
+            message="Successfully retrieved metrics and insights",
+            data={
                 "metrics": metrics,
                 "insights": insights
             }
-        }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

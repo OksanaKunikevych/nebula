@@ -43,8 +43,8 @@ def get_reviews(app_id: str, limit: int = 100, country: str = "us") -> List[Dict
         # Validate app_id
         validate_app_id(app_id)
         
-        logger.info(f"Initializing AppStore scraper for {app_name} (ID: {app_id})")
-        app_store = AppStore(country=country, app_name=app_name, app_id=app_id)
+        logger.info(f"Initializing AppStore scraper for app id {app_id})")
+        app_store = AppStore(country=country, app_name="", app_id=app_id)
         
         logger.info("Starting review collection...")
         # Collect more reviews to ensure we have enough for random selection

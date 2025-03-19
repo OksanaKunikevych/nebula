@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 from bson import ObjectId
-from .models import RawReview, ProcessedReview, ReviewMetrics
+from .models import RawReview, ProcessedReview, ReviewMetrics, InsightsMetrics
 from .nlp_analysis import InsightAnalysis
 
 # Configure logging
@@ -106,7 +106,7 @@ class Database:
                     review_text=review.get('review_text', ''),
                     review_title=review.get('title', ''),
                     sentiment_score=review.get('sentiment_score', 0),
-                    sentiment=review.get('sentiment', 'POSITIVE'),
+                    sentiment=review.get('sentiment', 'N/A'),
                     date_processed=datetime.utcnow()
                 )
                 processed_reviews.append(processed_review.dict())
@@ -145,19 +145,18 @@ class Database:
             logger.error(f"Error saving metrics: {str(e)}")
             raise
 
-    async def save_insights(self, app_id: str, insights: InsightAnalysis) -> None:
+    async def save_insights(self, app_id: str, insights: InsightsMetrics) -> None:
         """
         Save or update insights for an app.
         
         Args:
             app_id: App Store ID
-            insights: InsightAnalysis object containing NLP insights
+            insights: InsightsMetrics object containing NLP insights
         """
         try:
-            # Convert InsightAnalysis to dict and add app_id
+            # Convert InsightsMetrics to dict and add app_id
             insights_data = insights.dict()
             insights_data["app_id"] = app_id
-            insights_data["last_updated"] = datetime.utcnow()
             
             # Update or insert insights
             await self.insights.update_one(
