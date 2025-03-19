@@ -59,15 +59,6 @@ async def root():
                     "limit": "Optional. Number of reviews to return (default: 100)"
                 }
             },
-            "get_processed_reviews": {
-                "method": "GET",
-                "path": "/api/v1/reviews/{app_id}/processed",
-                "description": "Retrieves cleaned review data with sentiment scores",
-                "parameters": {
-                    "app_id": "Required. App Store ID of the app",
-                    "limit": "Optional. Number of reviews to return (default: 100)"
-                }
-            },
             "get_metrics": {
                 "method": "GET",
                 "path": "/api/v1/reviews/{app_id}/metrics",
@@ -78,7 +69,6 @@ async def root():
             }
         },
         "example": {
-            "app_name": "nebula-horoscope-astrology",
             "app_id": "1459969523",
             "limit": 100,
             "urls": {

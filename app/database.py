@@ -59,6 +59,9 @@ class Database:
             Number of reviews saved
         """
         try:
+            # Delete existing reviews for this app
+            await self.raw_reviews.delete_many({"app_id": app_id})
+            
             # Convert reviews to RawReview models
             raw_reviews = []
             for review in reviews:
@@ -94,6 +97,9 @@ class Database:
             Number of reviews saved
         """
         try:
+            # Delete existing processed reviews for this app
+            await self.processed_reviews.delete_many({"app_id": app_id})
+            
             # Convert reviews to ProcessedReview models
             processed_reviews = []
             for review in reviews:
@@ -185,54 +191,45 @@ class Database:
             logger.error(f"Error getting raw reviews: {str(e)}")
             raise
 
-    async def get_processed_reviews(self, app_id: str, limit: int = 100) -> List[dict]:
-        """
-        Get processed reviews for an app.
-        
-        Args:
-            app_id: App Store ID
-            limit: Maximum number of reviews to return
-            
-        Returns:
-            List of processed reviews
-        """
-        try:
-            cursor = self.processed_reviews.find({"app_id": app_id}).limit(limit)
-            reviews = await cursor.to_list(length=limit)
-            return [self._convert_to_dict(review) for review in reviews]
-        except Exception as e:
-            logger.error(f"Error getting processed reviews: {str(e)}")
-            raise
-
-    async def get_metrics(self, app_id: str) -> Optional[dict]:
+    async def get_metrics(self, app_id: str, limit: int = 100) -> Optional[dict]:
         """
         Get metrics for an app.
         
         Args:
             app_id: App Store ID
+            limit: Maximum number of reviews to analyze
             
         Returns:
             Dictionary containing metrics data
         """
         try:
-            metrics = await self.metrics.find_one({"app_id": app_id})
+            # Get the most recent metrics document
+            metrics = await self.metrics.find_one(
+                {"app_id": app_id},
+                sort=[("last_updated", -1)]
+            )
             return self._convert_to_dict(metrics)
         except Exception as e:
             logger.error(f"Error getting metrics: {str(e)}")
             raise
 
-    async def get_insights(self, app_id: str) -> Optional[dict]:
+    async def get_insights(self, app_id: str, limit: int = 100) -> Optional[dict]:
         """
         Get insights for an app.
         
         Args:
             app_id: App Store ID
+            limit: Maximum number of reviews to analyze
             
         Returns:
             Dictionary containing insights data
         """
         try:
-            insights = await self.insights.find_one({"app_id": app_id})
+            # Get the most recent insights document
+            insights = await self.insights.find_one(
+                {"app_id": app_id},
+                sort=[("last_updated", -1)]
+            )
             return self._convert_to_dict(insights)
         except Exception as e:
             logger.error(f"Error getting insights: {str(e)}")

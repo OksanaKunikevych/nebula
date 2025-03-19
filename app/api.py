@@ -116,37 +116,6 @@ async def get_raw_reviews(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/reviews/{app_id}/processed")
-async def get_processed_reviews(
-    app_id: str,
-    limit: int = Query(100, description="Maximum number of reviews to collect")
-):
-    """
-    Get processed reviews for a specific app.
-    """
-    try:
-        # Validate app_id
-        validate_app_id(app_id)
-        
-        # Get processed reviews from database
-        reviews = await db.get_processed_reviews(app_id, limit)
-        
-        # Convert to JSON string
-        json_data = json.dumps({
-            "app_id": app_id,
-            "reviews": reviews
-        }, indent=2, default=str)
-        
-        # Create a streaming response
-        return StreamingResponse(
-            io.StringIO(json_data),
-            media_type="application/json",
-            headers={
-                "Content-Disposition": f"attachment; filename={app_id}_processed_reviews_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            }
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/reviews/{app_id}/metrics")
 async def get_app_metrics(
