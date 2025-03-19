@@ -4,10 +4,8 @@ from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 
-from pydantic import BaseModel
-
 from app.utils import clean_reviews
-from app.metrics import ReviewMetrics
+from app.models import ProcessedReview, ReviewResponse, RawReviewResponse, MetricsResponse
 from app.nlp_analysis import InsightAnalysis
 from app.api import router
 
@@ -32,28 +30,6 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(router, prefix="/api/v1")
-
-class Review(BaseModel):
-    rating: int
-    title: Optional[str]
-    review_text: str
-    date: datetime
-    processed: bool = False
-
-class ReviewResponse(BaseModel):
-    status: str
-    message: str
-    data: List[Review]
-
-class RawReviewResponse(BaseModel):
-    status: str
-    message: str
-    data: List[Dict[str, Any]]
-
-class MetricsResponse(BaseModel):
-    status: str
-    message: str
-    data: ReviewMetrics
 
 @app.get("/")
 async def root():

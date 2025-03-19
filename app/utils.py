@@ -89,26 +89,30 @@ def clean_text(text: str) -> str:
     if not text:
         return ""
     
-   # Remove HTML tags
-    soup = BeautifulSoup(text, 'html.parser')
-    text = soup.get_text()
-    
-    # Normalize Unicode characters
-    text = unidecode(text)
-    
-    # Convert to lowercase
-    text = text.lower()
-    
-    # Remove special characters but keep basic punctuation
-    text = re.sub(r'[^\w\s.,!?-]', ' ', text)
-    
-    # Normalize whitespace (handle multiple types of whitespace)
-    text = re.sub(r'\s+', ' ', text)
-    
-    # Remove leading/trailing whitespace
-    text = text.strip()
-    
-    return text
+    try:
+        # Remove HTML tags
+        soup = BeautifulSoup(text, 'html.parser')
+        text = soup.get_text()
+        
+        # Normalize Unicode characters
+        text = unidecode(text)
+        
+        # Convert to lowercase
+        text = text.lower()
+        
+        # Remove special characters but keep basic punctuation
+        text = re.sub(r'[^\w\s.,!?-]', ' ', text)
+        
+        # Normalize whitespace (handle multiple types of whitespace)
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Remove leading/trailing whitespace
+        text = text.strip()
+        
+        return text
+    except Exception as e:
+        logger.error(f"Error cleaning text: {str(e)}")
+        return text
 
 def clean_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -123,9 +127,13 @@ def clean_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     processed_reviews = []
     
     for review in reviews:
+        # Debug: Print raw review before processing
+        logger.debug(f"Original title: {review.get('title', '')[:50]}...")
+        logger.debug(f"Original review: {review.get('review', '')[:100]}...")
+        
         # Skip reviews with empty bodies
         if not review.get('review'):
-            print(f"Skipping - empty review")
+            logger.info(f"Skipping - empty review")
             continue
         
         processed_review = {
@@ -138,10 +146,14 @@ def clean_reviews(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         
         # Skip if cleaning resulted in empty review_text
         if not processed_review['review_text']:
-            print(f"Skipping review - empty review after cleaning")
+            logger.info(f"Skipping review - empty review after cleaning")
             continue
+        
+        # Debug: Print processed review
+        logger.debug(f"Processed title: {processed_review['title'][:50]}...")
+        logger.debug(f"Processed review: {processed_review['review_text'][:100]}...")
         
         processed_reviews.append(processed_review)
     
-    print(f"\nProcessed {len(processed_reviews)} reviews (filtered out {len(reviews) - len(processed_reviews)} empty reviews)")
+    logger.info(f"\nProcessed {len(processed_reviews)} reviews (filtered out {len(reviews) - len(processed_reviews)} empty reviews)")
     return processed_reviews

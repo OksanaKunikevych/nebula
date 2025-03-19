@@ -127,7 +127,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         logger.info("No reviews to analyze")
         return InsightAnalysis(
             sentiment=SentimentAnalysis(
-                overall_sentiment="NEUTRAL",
+                overall_sentiment="N/A",
                 sentiment_score=0.0,
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
@@ -179,7 +179,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     
     # Calculate sentiment distribution
     sentiment_counts = Counter(sentiments)
-    total = len(sentiments)
     sentiment_distribution = {
         "POSITIVE": sentiment_counts.get("POSITIVE", 0),
         "NEGATIVE": sentiment_counts.get("NEGATIVE", 0)
@@ -224,7 +223,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     print(f"Negative keywords: {negative_keywords}")
     print(">>>>>>>>>>>>>>>>>")
 
-    
     # Generate improvement areas from negative keywords
     improvement_areas = [f"Address issues related to '{keyword}'" for keyword in negative_keywords]
     

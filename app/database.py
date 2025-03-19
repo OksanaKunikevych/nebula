@@ -66,6 +66,7 @@ class Database:
                     app_id=app_id,
                     app_name=app_name,
                     review_text=review.get('review', ''),
+                    review_title=review.get('title', ''),
                     rating=review.get('rating', 0),
                     date_scraped=datetime.utcnow()
                 )
@@ -99,8 +100,9 @@ class Database:
                 processed_review = ProcessedReview(
                     app_id=app_id,
                     review_text=review.get('review_text', ''),
+                    review_title=review.get('title', ''),
                     sentiment_score=review.get('sentiment_score', 0),
-                    sentiment=review.get('sentiment', 'NEUTRAL'),
+                    sentiment=review.get('sentiment', 'POSITIVE'),
                     date_processed=datetime.utcnow()
                 )
                 processed_reviews.append(processed_review.dict())

@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 class RawReview(BaseModel):
     app_id: str = Field(..., description="App identifier")
-    app_name: str = Field(..., description="Name of the app")
     review_text: str = Field(..., description="Raw review text")
+    review_title: str = Field("", description="Review title")
     rating: int = Field(..., ge=1, le=5, description="Review rating (1-5)")
     date_scraped: datetime = Field(default_factory=datetime.utcnow, description="Timestamp when review was scraped")
     
@@ -13,8 +13,8 @@ class RawReview(BaseModel):
         schema_extra = {
             "example": {
                 "app_id": "1459969523",
-                "app_name": "Nebula Horoscope",
                 "review_text": "🔥 Love it! Best horoscope app.",
+                "review_title": "Amazing App!",
                 "rating": 5,
                 "date_scraped": "2024-03-17T12:00:00Z"
             }
@@ -23,15 +23,19 @@ class RawReview(BaseModel):
 class ProcessedReview(BaseModel):
     app_id: str = Field(..., description="App identifier")
     review_text: str = Field(..., description="Processed review text")
+    review_title: str = Field("", description="Processed review title")
     sentiment_score: float = Field(..., ge=-1, le=1, description="Sentiment analysis score (-1 to 1)")
-    sentiment: str = Field(..., description="Sentiment label (POSITIVE, NEGATIVE, NEUTRAL)")
+    sentiment: str = Field(..., description="Sentiment label (POSITIVE, NEGATIVE)")
     date_processed: datetime = Field(default_factory=datetime.utcnow, description="Timestamp when review was processed")
     
     class Config:
         schema_extra = {
             "example": {
                 "app_id": "1459969523",
-                "review_text": "Love it! Best horoscope app.",
+                "raw_review_text": "🔥 Love it! Best horoscope app.",
+                "raw_review_title": "Amazing App!",
+                "processed_review_text": "Love it! Best horoscope app.",
+                "processed_review_title": "Amazing App!",
                 "sentiment_score": 0.9,
                 "sentiment": "POSITIVE",
                 "date_processed": "2024-03-17T12:00:00Z"
@@ -44,7 +48,9 @@ class ReviewMetrics(BaseModel):
     rating_distribution: dict[str, int]
     total_reviews: int
     review_length_stats: dict[str, float]
-    length_rating_correlation: float
+    overall_sentiment: str
+    overall_sentiment_score: float
+    sentiment_distribution: dict[str, int]
     
     class Config:
         schema_extra = {
@@ -65,6 +71,26 @@ class ReviewMetrics(BaseModel):
                     "max": 1000,
                     "avg": 100.5
                 },
-                "length_rating_correlation": 0.2
+                "overall_sentiment": "POSITIVE",
+                "overall_sentiment_score": 0.8,
+                "sentiment_distribution": {
+                    "POSITIVE": 80,
+                    "NEGATIVE": 20
+                }
             }
-        } 
+        }
+
+class ReviewResponse(BaseModel):
+    status: str
+    message: str
+    data: List[ProcessedReview]
+
+class RawReviewResponse(BaseModel):
+    status: str
+    message: str
+    data: List[Dict[str, Any]]
+
+class MetricsResponse(BaseModel):
+    status: str
+    message: str
+    data: ReviewMetrics 
