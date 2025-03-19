@@ -507,15 +507,8 @@
             });
 
             // Update keywords
-            const positiveKeywords = data.data.insights.keywords.positive_keywords || [];
             const negativeKeywords = data.data.insights.keywords.negative_keywords || [];
-            
-            const positiveKeywordsList = document.getElementById('positiveKeywords');
             const negativeKeywordsList = document.getElementById('negativeKeywords');
-            
-            positiveKeywordsList.innerHTML = positiveKeywords
-                .map(keyword => `<li class="keyword-item positive">${keyword}</li>`)
-                .join('');
             
             negativeKeywordsList.innerHTML = negativeKeywords
                 .map(keyword => `<li class="keyword-item negative">${keyword}</li>`)
