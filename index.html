@@ -430,7 +430,26 @@
                             position: 'bottom',
                             align: 'center',
                             labels: {
-                                padding: 20
+                                padding: 20,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => ({
+                                            text: `${label}: ${data.datasets[0].data[i]}%`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            strokeStyle: data.datasets[0].borderColor,
+                                            lineWidth: data.datasets[0].borderWidth
+                                        }));
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}%`;
+                                }
                             }
                         }
                     },
@@ -453,7 +472,7 @@
                 data: {
                     labels: ['1★', '2★', '3★', '4★', '5★'],
                     datasets: [{
-                        label: 'Number of Reviews',
+                        label: 'Percentage of Reviews',
                         data: [
                             ratingData['1'] || 0,
                             ratingData['2'] || 0,
@@ -477,6 +496,24 @@
                             labels: {
                                 padding: 20
                             }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y}% of reviews`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
                         }
                     },
                     layout: {
@@ -485,22 +522,6 @@
                             bottom: 20,
                             left: 20,
                             right: 20
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            },
-                            grid: {
-                                drawBorder: false
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
                         }
                     }
                 }

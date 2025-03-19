@@ -46,7 +46,7 @@ class ReviewMetrics(BaseModel):
     """Model for storing review metrics."""
     last_updated: datetime = Field(default_factory=datetime.utcnow)
     average_rating: float
-    rating_distribution: Dict[str, int]  # distribution of ratings (1-5)
+    rating_distribution: Dict[str, float]  # distribution of ratings (1-5) as percentages
     total_reviews: int
     review_length_stats: Dict[str, float]  # min, max, avg lengths
 
@@ -56,11 +56,11 @@ class ReviewMetrics(BaseModel):
                 "last_updated": "2024-03-20T12:00:00",
                 "average_rating": 4.5,
                 "rating_distribution": {
-                    "1": 5,
-                    "2": 10,
-                    "3": 15,
-                    "4": 30,
-                    "5": 40
+                    "1": 5.0,
+                    "2": 10.0,
+                    "3": 15.0,
+                    "4": 30.0,
+                    "5": 40.0
                 },
                 "total_reviews": 100,
                 "review_length_stats": {

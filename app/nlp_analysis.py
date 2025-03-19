@@ -174,10 +174,17 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
     
     # Calculate sentiment distribution
     sentiment_counts = Counter(sentiments)
-    sentiment_distribution = {
-        "POSITIVE": sentiment_counts.get("POSITIVE", 0),
-        "NEGATIVE": sentiment_counts.get("NEGATIVE", 0)
-    }
+    total_sentiments = sum(sentiment_counts.values())
+    if total_sentiments > 0:
+        sentiment_distribution = {
+            "POSITIVE": round((sentiment_counts.get("POSITIVE", 0) / total_sentiments) * 100, 2),
+            "NEGATIVE": round((sentiment_counts.get("NEGATIVE", 0) / total_sentiments) * 100, 2)
+        }
+    else:
+        sentiment_distribution = {
+            "POSITIVE": 0,
+            "NEGATIVE": 0
+        }
     
     # Calculate average sentiment score (-1 to 1 scale)
     if len(scores) > 0:
