@@ -46,13 +46,12 @@ class Database:
         
         return data
 
-    async def save_raw_reviews(self, app_id: str, app_name: str, reviews: List[dict]) -> int:
+    async def save_raw_reviews(self, app_id: str, reviews: List[dict]) -> int:
         """
         Save raw reviews to the database.
         
         Args:
             app_id: App Store ID
-            app_name: Name of the app
             reviews: List of raw reviews
             
         Returns:
@@ -67,7 +66,6 @@ class Database:
             for review in reviews:
                 raw_review = RawReview(
                     app_id=app_id,
-                    app_name=app_name,
                     review_text=review.get('review', ''),
                     review_title=review.get('title', ''),
                     rating=review.get('rating', 0),

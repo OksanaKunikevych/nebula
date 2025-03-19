@@ -24,7 +24,6 @@ except ConnectionError as e:
 @router.post("/reviews/{app_id}")
 async def collect_reviews(
     app_id: str,
-    app_name: Optional[str] = Query(None, description="Optional name of the app"),
     limit: int = Query(100, description="Maximum number of reviews to collect")
 ):
     """
@@ -41,10 +40,10 @@ async def collect_reviews(
         validate_app_id(app_id)
         
         # Get raw reviews
-        raw_reviews = get_reviews(app_name or "", app_id, limit)
+        raw_reviews = get_reviews(app_id, limit)
         
         # Save raw reviews
-        raw_count = await db.save_raw_reviews(app_id, app_name or "", raw_reviews)
+        raw_count = await db.save_raw_reviews(app_id, raw_reviews)
         
         # Clean and process reviews
         processed_reviews = clean_reviews(raw_reviews)

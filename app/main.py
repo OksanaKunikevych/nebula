@@ -46,7 +46,6 @@ async def root():
                 "description": "Scrapes, stores, and processes reviews for the specified app",
                 "parameters": {
                     "app_id": "Required. App Store ID of the app",
-                    "app_name": "Optional. Name of the app",
                     "limit": "Optional. Maximum number of reviews to collect (default: 100)"
                 }
             },
@@ -72,10 +71,9 @@ async def root():
             "app_id": "1459969523",
             "limit": 100,
             "urls": {
-                "collect_reviews": "curl -X POST 'http://localhost:8001/api/v1/reviews/1459969523?app_name=nebula-horoscope-astrology&limit=100'",
-                "raw_reviews": "http://localhost:8001/api/v1/reviews/1459969523/raw?limit=100",
-                "processed_reviews": "http://localhost:8001/api/v1/reviews/1459969523/processed?limit=100",
-                "metrics": "http://localhost:8001/api/v1/reviews/1459969523/metrics"
+                "collect_reviews": "curl -X POST 'http://localhost:8001/api/v1/reviews/1459969523?limit=100'",
+                "raw_reviews": "http://localhost:8001/api/v1/reviews/1459969523/raw?limit=100'",
+                "metrics": "http://localhost:8001/api/v1/reviews/1459969523/metrics'"
             }
         }
     }

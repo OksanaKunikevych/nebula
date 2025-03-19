@@ -24,13 +24,12 @@ def validate_app_id(app_id: str) -> None:
     if not app_id.isdigit():
         raise ValueError(f"Invalid app_id: {app_id}. App Store ID must be numeric.")
 
-def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us") -> List[Dict[str, Any]]:
+def get_reviews(app_id: str, limit: int = 100, country: str = "us") -> List[Dict[str, Any]]:
     """
     Get reviews from App Store for a specific app.
     
     Args:
-        app_name: Name of the app to collect reviews for
-        app_id: App Store ID of the app
+        app_id: App Store ID to collect reviews for
         limit: Maximum number of reviews to collect
         country: Country code for the App Store (default: "us")
         
@@ -69,7 +68,6 @@ def get_reviews(app_name: str, app_id: str, limit: int = 100, country: str = "us
     except Exception as e:
         logger.error(f"Error collecting reviews: {str(e)}")
         raise
-
 
 def clean_text(text: str) -> str:
     """
