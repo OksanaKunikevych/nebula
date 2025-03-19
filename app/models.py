@@ -89,6 +89,7 @@ class InsightsMetrics(BaseModel):
     sentiment_distribution: Dict[str, int]
     negative_keywords: List[str]
     improvement_areas: List[str]
+    wordcloud_image: str = Field(default="")
 
     class Config:
         schema_extra = {
@@ -105,7 +106,8 @@ class InsightsMetrics(BaseModel):
                     "Address issues related to 'crash'",
                     "Address issues related to 'slow'",
                     "Address issues related to 'bug'"
-                ]
+                ],
+                "wordcloud_image": "data:image/png;base64,..."
             }
         }
 

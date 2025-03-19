@@ -8,6 +8,10 @@ from transformers import pipeline
 from keybert import KeyBERT
 import logging
 from datetime import datetime
+import base64
+from io import BytesIO
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 from .models import InsightsMetrics
 
@@ -115,6 +119,49 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
         logger.error(f"Error in keyword extraction: {str(e)}")
         return []
 
+def generate_wordcloud(text: str) -> str:
+    """
+    Generate word cloud image from text using WordCloud library.
+    
+    Args:
+        text: Text to analyze
+        
+    Returns:
+        Base64 encoded PNG image string
+    """
+    if not text:
+        return ""
+    
+    try:
+        # Create and generate a word cloud image
+        wordcloud = WordCloud(
+            width=800,
+            height=400,
+            background_color='white',
+            stopwords=STOPWORDS,
+            min_font_size=10,
+            max_font_size=100,
+            random_state=42,
+            colormap='viridis'
+        ).generate(text)
+        
+        # Create a figure and axis
+        plt.figure(figsize=(10, 5))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis('off')
+        
+        # Save the image to a BytesIO object
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', bbox_inches='tight', pad_inches=0)
+        plt.close()
+        
+        # Convert to base64 string
+        img_str = base64.b64encode(img_buffer.getvalue()).decode()
+        return f"data:image/png;base64,{img_str}"
+    
+    except Exception as e:
+        logger.error(f"Error generating word cloud: {str(e)}")
+        return ""
 
 def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
     """
@@ -133,10 +180,15 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
             sentiment_score=0.0,
             sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
             negative_keywords=[],
-            improvement_areas=[]
+            improvement_areas=[],
+            wordcloud_image=""
         )
     
     logger.info(f"Analyzing {len(reviews)} reviews")
+    
+    # Combine all review texts for word cloud generation
+    all_reviews_text = " ".join(review.get('review_text', '') for review in reviews)
+    wordcloud_image = generate_wordcloud(all_reviews_text)
     
     # Sentiment Analysis
     sentiments = []
@@ -169,7 +221,8 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
             sentiment_score=0.0,
             sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
             negative_keywords=[],
-            improvement_areas=[]
+            improvement_areas=[],
+            wordcloud_image=""
         )
     
     # Calculate sentiment distribution
@@ -235,5 +288,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
         sentiment_score=round(avg_score, 2),
         sentiment_distribution=sentiment_distribution,
         negative_keywords=negative_keywords,
-        improvement_areas=improvement_areas
+        improvement_areas=improvement_areas,
+        wordcloud_image=wordcloud_image
     ) 
