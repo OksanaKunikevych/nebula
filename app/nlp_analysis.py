@@ -211,45 +211,31 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         "NEGATIVE": sentiment_counts.get("NEGATIVE", 0)
     }
     
-    # Calculate overall sentiment based on normalized scores
-    normalized_scores = []
-    for sentiment, score in zip(sentiments, scores):
-        if sentiment == "POSITIVE":
-            normalized_scores.append(score)
-        else:  # NEGATIVE
-            normalized_scores.append(-score)
-    if len(normalized_scores) == 0:
-        avg_score = sum(normalized_scores) / len(normalized_scores)
-        normalized_avg = (avg_score + 1) / 2
+    # Calculate average sentiment score (-1 to 1 scale)
+    if len(scores) > 0:
+        avg_score = sum(scores) / len(scores)
     else:
         logger.warning("No valid sentiments found for sentiment analysis")
-        normalized_avg = 0.0
+        avg_score = 0.0
         
-    # Determine overall sentiment based on both distribution and average score
+    # Determine overall sentiment based on distribution
     positive_count = sentiment_distribution.get("POSITIVE", 0)
     negative_count = sentiment_distribution.get("NEGATIVE", 0)
     
     # If there's a clear majority in the distribution, use that
     if positive_count > negative_count:
-        overall_sentiment = "VERY_POSITIVE" if normalized_avg > 0.8 else "POSITIVE"
+        overall_sentiment = "VERY_POSITIVE" if avg_score > 0.8 else "POSITIVE"
     elif negative_count > positive_count:
-        overall_sentiment = "VERY_NEGATIVE" if normalized_avg < 0.2 else "NEGATIVE"
+        overall_sentiment = "VERY_NEGATIVE" if avg_score < -0.8 else "NEGATIVE"
     else:
-        # If equal counts, use the normalized average
-        if normalized_avg > 0.9:
-            overall_sentiment = "VERY_POSITIVE"
-        elif normalized_avg > 0.7:
-            overall_sentiment = "POSITIVE"
-        elif normalized_avg > 0.5:
-            overall_sentiment = "SLIGHTLY_POSITIVE"
-        elif normalized_avg == 0.5:
-            overall_sentiment = "NEUTRAL"
-        elif normalized_avg > 0.3:
-            overall_sentiment = "SLIGHTLY_NEGATIVE"
-        elif normalized_avg > 0.1:
-            overall_sentiment = "NEGATIVE"
+        # Map scores to sentiment categories based on magnitude and sign
+        score_magnitude = abs(avg_score)
+        if score_magnitude > 0.8:
+            overall_sentiment = "VERY_" + ("POSITIVE" if avg_score > 0 else "NEGATIVE")
+        elif score_magnitude > 0.6:
+            overall_sentiment = "POSITIVE" if avg_score > 0 else "NEGATIVE"
         else:
-            overall_sentiment = "VERY_NEGATIVE"
+            overall_sentiment = "SLIGHTLY_" + ("POSITIVE" if avg_score > 0 else "NEGATIVE")
 
     # Keyword Analysis
     logger.info("Starting keyword analysis...")
@@ -299,7 +285,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     return InsightAnalysis(
         sentiment=SentimentAnalysis(
             overall_sentiment=overall_sentiment,
-            sentiment_score=round(normalized_avg, 2),
+            sentiment_score=round(avg_score, 2),
             sentiment_distribution=sentiment_distribution
         ),
         keywords=KeywordAnalysis(
