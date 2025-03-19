@@ -25,7 +25,7 @@ except LookupError:
 # Get stopwords
 STOPWORDS = set(stopwords.words('english'))
 # TODO: Add custom stopwords
-# TODO: Get stopwords from Bert instead
+# TODO: Get stopwords from Bert instead of NLTK
 
 # Initialize sentiment analyzer
 sentiment_analyzer = pipeline(

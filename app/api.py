@@ -133,20 +133,24 @@ async def get_app_metrics(
         validate_app_id(app_id)
         
         # Get metrics from database
-        metrics = await db.get_metrics(app_id)
+        metrics_data = await db.get_metrics(app_id)
         
         # Get insights from database
-        insights = await db.get_insights(app_id)
+        insights_data = await db.get_insights(app_id)
         
-        if not metrics:
+        if not metrics_data:
             raise HTTPException(status_code=404, detail="No metrics found for this app")
+        
+        # Convert database data to Pydantic models
+        metrics = ReviewMetrics(**metrics_data)
+        insights = InsightsMetrics(**insights_data)
         
         return MetricsResponse(
             status="success",
             message="Successfully retrieved metrics and insights",
             data={
-                "metrics": metrics,
-                "insights": insights
+                "metrics": metrics.dict(),
+                "insights": insights.dict()
             }
         )
     except Exception as e:
