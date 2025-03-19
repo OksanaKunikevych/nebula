@@ -1,4 +1,3 @@
-
 # ⭐ RateHarvest: App Store Reviews Collector ⭐
 
   
@@ -221,6 +220,28 @@ c. Get metrics and insights:
 "http://localhost:8001/api/v1/reviews/1459969523/metrics"
 ```
 
-## Future plans and improvements
+## Using the Basic UI
 
+The project includes a simple HTML interface (`index.html`) for basic interaction with the API:
+
+1. Open the index.html file in your web browser
+
+
+2. Features:
+   - Real-time review collection and analysis
+   - Visual representation of review metrics and insights
+
+Note: This is a basic v0 UI implementation.
+
+## Future plans and improvements
+- More insights ideas: 
+  - correlations between review_length_stats and rating, better keyword extraction
+  - detect change of sentiment
+  - collect ideas for feature requests (topic modeling)
+  - detect mentions of competitors (NER)
+
+- technical improvements:
+  - Retrieve app id from app name (currently restricted by third-party scraper library)
+  - Raw download endpoint: enhance to download either raw or processed with ?type=“raw/processed”
+  - Add test coverage
   
