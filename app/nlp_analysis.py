@@ -42,7 +42,6 @@ class SentimentAnalysis(BaseModel):
 class KeywordAnalysis(BaseModel):
     positive_keywords: List[str]  # list of keywords from positive reviews
     negative_keywords: List[str]  # list of keywords from negative reviews
-    key_phrases: List[str]  # important phrases extracted from reviews
 
 
 class InsightAnalysis(BaseModel):
@@ -106,7 +105,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
             stop_words='english',
             top_n=top_n,
             use_mmr=True, # ensures that keywords are not too similar
-            diversity=0.7 # diversity of keywords
+            #diversity=0.7 # diversity of keywords
         )
         return [keyword for keyword, _ in keywords]
     
@@ -135,8 +134,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             ),
             keywords=KeywordAnalysis(
                 positive_keywords=[],
-                negative_keywords=[],
-                key_phrases=[]
+                negative_keywords=[]
             ),
             improvement_areas=[]
         )
@@ -196,8 +194,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             ),
             keywords=KeywordAnalysis(
                 positive_keywords=[],
-                negative_keywords=[],
-                key_phrases=[]
+                negative_keywords=[]
             ),
             improvement_areas=[]
         )
@@ -289,7 +286,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
         keywords=KeywordAnalysis(
             positive_keywords=positive_keywords,
             negative_keywords=negative_keywords,
-            key_phrases=[]  # TODO: add key phrases extraction
         ),
         improvement_areas=improvement_areas
     ) 
