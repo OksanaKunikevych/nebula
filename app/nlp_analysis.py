@@ -103,7 +103,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
         # TODO: try with other embedding models: https://github.com/MaartenGr/KeyBERT
         keywords = keybert_model.extract_keywords(
             text,
-            keyphrase_ngram_range=(1, 3), # Extract single words and phrases up to 3 words
+            keyphrase_ngram_range=(1, 4), # Extract single words and phrases up to 3 words
             stop_words='english',
             top_n=top_n,
             use_mmr=True, # ensures that keywords are not too similar
