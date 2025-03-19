@@ -348,7 +348,7 @@
                 <div class="keywords-container">
                     <div class="keyword-section">
                         <h3>Key Topics</h3>
-                        <ul id="semanticKeywords" class="keyword-list"></ul>
+                        <ul id="positiveKeywords" class="keyword-list"></ul>
                     </div>
                     <div class="keyword-section">
                         <h3>Areas for Improvement</h3>
@@ -507,24 +507,18 @@
             });
 
             // Update keywords
-            const semanticKeywords = data.data.insights.keywords.semantic_keywords || [];
+            const positiveKeywords = data.data.insights.keywords.positive_keywords || [];
             const negativeKeywords = data.data.insights.keywords.negative_keywords || [];
             
-            const semanticKeywordsList = document.getElementById('semanticKeywords');
+            const positiveKeywordsList = document.getElementById('positiveKeywords');
             const negativeKeywordsList = document.getElementById('negativeKeywords');
             
-            semanticKeywordsList.innerHTML = semanticKeywords
-                .map(keyword => {
-                    const text = keyword.keyword || keyword;
-                    return `<li class="keyword-item positive">${text}</li>`;
-                })
+            positiveKeywordsList.innerHTML = positiveKeywords
+                .map(keyword => `<li class="keyword-item positive">${keyword}</li>`)
                 .join('');
             
             negativeKeywordsList.innerHTML = negativeKeywords
-                .map(keyword => {
-                    const text = keyword.keyword || keyword;
-                    return `<li class="keyword-item negative">${text}</li>`;
-                })
+                .map(keyword => `<li class="keyword-item negative">${keyword}</li>`)
                 .join('');
         }
 

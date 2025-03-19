@@ -40,9 +40,10 @@ class SentimentAnalysis(BaseModel):
     sentiment_distribution: Dict[str, int]
 
 class KeywordAnalysis(BaseModel):
-    semantic_keywords: List[Dict[str, Any]]  # list of {keyword: score} for most important keywords
-    negative_keywords: List[Dict[str, Any]]  # list of {keyword: score} for negative reviews
+    positive_keywords: List[str]  # list of keywords from positive reviews
+    negative_keywords: List[str]  # list of keywords from negative reviews
     key_phrases: List[str]  # important phrases extracted from reviews
+
 
 class InsightAnalysis(BaseModel):
     sentiment: SentimentAnalysis
@@ -82,7 +83,7 @@ def get_sentiment(text: str) -> Tuple[Optional[str], Optional[float]]:
         logger.error(f"Error in sentiment analysis: {str(e)}")
         return None, None
 
-def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
+def extract_keywords(text: str, top_n: int = 10) -> List[str]:
     """
     Extract semantic keywords using KeyBERT.
     
@@ -91,7 +92,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
         top_n: Number of keywords to extract
         
     Returns:
-        List of dictionaries containing keywords and their scores
+        List of keywords
     """
     if not text:
         return []
@@ -101,16 +102,14 @@ def extract_keywords(text: str, top_n: int = 10) -> List[Dict[str, Any]]:
         # TODO: try with other embedding models: https://github.com/MaartenGr/KeyBERT
         keywords = keybert_model.extract_keywords(
             text,
-            keyphrase_ngram_range=(1, 3),  # Extract single words and phrases up to 3 words
+            keyphrase_ngram_range=(1, 3), # Extract single words and phrases up to 3 words
             stop_words='english',
-            top_n=top_n
+            top_n=top_n,
+            use_mmr=True, # ensures that keywords are not too similar
+            diversity=0.7 # diversity of keywords
         )
-        
-        # Convert to list of dictionaries
-        return [
-            {"keyword": keyword, "score": score}
-            for keyword, score in keywords
-        ]
+        return [keyword for keyword, _ in keywords]
+    
     except Exception as e:
         logger.error(f"Error in keyword extraction: {str(e)}")
         return []
@@ -135,7 +134,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
             keywords=KeywordAnalysis(
-                semantic_keywords=[],
+                positive_keywords=[],
                 negative_keywords=[],
                 key_phrases=[]
             ),
@@ -196,7 +195,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
             keywords=KeywordAnalysis(
-                semantic_keywords=[],
+                positive_keywords=[],
                 negative_keywords=[],
                 key_phrases=[]
             ),
@@ -253,32 +252,31 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     )
     
     # Extract keywords from positive reviews
-    semantic_keywords = extract_keywords(positive_text)
+    positive_keywords = extract_keywords(positive_text)
     
     # Extract keywords from negative reviews
     negative_keywords = extract_keywords(negative_text)
     
     # Filter out any keywords that appear in both lists
-    semantic_keywords = [
-        kw for kw in semantic_keywords
-        if not any(nk['keyword'] == kw['keyword'] for nk in negative_keywords)
+    positive_keywords = [
+        kw for kw in positive_keywords
+        if kw not in negative_keywords
     ]
     negative_keywords = [
-        nk for nk in negative_keywords
-        if not any(sk['keyword'] == nk['keyword'] for sk in semantic_keywords)
+        kw for kw in negative_keywords
+        if kw not in positive_keywords
     ]
     
-    # Sort by score and take top 10
-    semantic_keywords = sorted(semantic_keywords, key=lambda x: x['score'], reverse=True)[:10]
-    negative_keywords = sorted(negative_keywords, key=lambda x: x['score'], reverse=True)[:10]
+    # Take top 10 keywords
+    positive_keywords = positive_keywords[:10]
+    negative_keywords = negative_keywords[:10]
     
     # Generate Insights
     improvement_areas = []
     
     # Analyze negative keywords for improvement areas
     for keyword in negative_keywords:
-        if keyword['score'] > 0.3:  # Only consider significant keywords
-            improvement_areas.append(f"Address issues related to '{keyword['keyword']}'")
+        improvement_areas.append(f"Address issues related to '{keyword}'")
     
     logger.info(f"Found {len(improvement_areas)} improvement areas")
     
@@ -289,7 +287,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             sentiment_distribution=sentiment_distribution
         ),
         keywords=KeywordAnalysis(
-            semantic_keywords=semantic_keywords,
+            positive_keywords=positive_keywords,
             negative_keywords=negative_keywords,
             key_phrases=[]  # TODO: add key phrases extraction
         ),
