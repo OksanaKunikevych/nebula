@@ -40,7 +40,6 @@ class SentimentAnalysis(BaseModel):
     sentiment_distribution: Dict[str, int]
 
 class KeywordAnalysis(BaseModel):
-    positive_keywords: List[str]  # list of keywords from positive reviews
     negative_keywords: List[str]  # list of keywords from negative reviews
 
 
@@ -133,32 +132,12 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
             keywords=KeywordAnalysis(
-                positive_keywords=[],
                 negative_keywords=[]
             ),
             improvement_areas=[]
         )
     
     logger.info(f"Analyzing {len(reviews)} reviews")
-    
-    # Separate negative reviews (rating <= 2)
-    negative_reviews = [
-        review for review in reviews
-        if review.get('rating', 0) <= 2
-    ]
-    
-    # Combine all review texts
-    all_text = " ".join(
-        f"{review.get('title', '')} {review.get('review_text', '')}"
-        for review in reviews
-    )
-    negative_text = " ".join(
-        f"{review.get('title', '')} {review.get('review_text', '')}"
-        for review in negative_reviews
-    )
-    
-    logger.info(f"Combined text length: {len(all_text)}")
-    logger.info(f"Negative reviews count: {len(negative_reviews)}")
     
     # Sentiment Analysis
     sentiments = []
@@ -193,7 +172,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
                 sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0}
             ),
             keywords=KeywordAnalysis(
-                positive_keywords=[],
                 negative_keywords=[]
             ),
             improvement_areas=[]
@@ -236,46 +214,21 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
     # Keyword Analysis
     logger.info("Starting keyword analysis...")
     
-    # Get positive reviews (rating >= 4)
-    positive_reviews = [
-        review for review in reviews
-        if review.get('rating', 0) >= 4
-    ]
-    
-    # Combine positive review texts
-    positive_text = " ".join(
-        f"{review.get('title', '')} {review.get('review_text', '')}"
-        for review in positive_reviews
-    )
-    
-    # Extract keywords from positive reviews
-    positive_keywords = extract_keywords(positive_text)
-    
-    # Extract keywords from negative reviews
+    # Filter out negative reviews
+    negative_reviews = [review for review in reviews if review.get('rating', 0) <= 2]
+    negative_text = " ".join(review.get('review_text', '') for review in negative_reviews)
+    # Extract keywords from combined negative reviews
     negative_keywords = extract_keywords(negative_text)
     
-    # Filter out any keywords that appear in both lists
-    positive_keywords = [
-        kw for kw in positive_keywords
-        if kw not in negative_keywords
-    ]
-    negative_keywords = [
-        kw for kw in negative_keywords
-        if kw not in positive_keywords
-    ]
+    print(">>>>>>>>>>>>>>>>>")
+    print(f"Negative keywords: {negative_keywords}")
+    print(">>>>>>>>>>>>>>>>>")
+
     
-    # Take top 10 keywords
-    positive_keywords = positive_keywords[:10]
-    negative_keywords = negative_keywords[:10]
+    # Generate improvement areas from negative keywords
+    improvement_areas = [f"Address issues related to '{keyword}'" for keyword in negative_keywords]
     
-    # Generate Insights
-    improvement_areas = []
-    
-    # Analyze negative keywords for improvement areas
-    for keyword in negative_keywords:
-        improvement_areas.append(f"Address issues related to '{keyword}'")
-    
-    logger.info(f"Found {len(improvement_areas)} improvement areas")
+    logger.info(f"Generated {len(improvement_areas)} improvement areas")
     
     return InsightAnalysis(
         sentiment=SentimentAnalysis(
@@ -284,7 +237,6 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightAnalysis:
             sentiment_distribution=sentiment_distribution
         ),
         keywords=KeywordAnalysis(
-            positive_keywords=positive_keywords,
             negative_keywords=negative_keywords,
         ),
         improvement_areas=improvement_areas
