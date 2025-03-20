@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from app.utils import clean_reviews
 from app.models import ProcessedReview, ReviewResponse, RawReviewResponse, MetricsResponse
@@ -27,6 +29,11 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+# Mount static files directory
+static_dir = Path("static")
+static_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Include API routes
 app.include_router(router, prefix="/api/v1")

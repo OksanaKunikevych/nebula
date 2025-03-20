@@ -405,8 +405,8 @@
 
             // Update word cloud image
             const wordcloudImage = document.getElementById('wordcloud-image');
-            if (data.data.insights.wordcloud_image) {
-                wordcloudImage.src = data.data.insights.wordcloud_image;
+            if (data.data.insights.wordcloud_url) {
+                wordcloudImage.src = data.data.insights.wordcloud_url;
                 wordcloudImage.style.display = 'block';
             } else {
                 wordcloudImage.style.display = 'none';

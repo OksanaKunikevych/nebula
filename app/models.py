@@ -89,7 +89,7 @@ class InsightsMetrics(BaseModel):
     sentiment_distribution: Dict[str, int]
     negative_keywords: List[str]
     improvement_areas: List[str]
-    wordcloud_image: str = Field(default="")
+    wordcloud_url: str = Field(default="", description="URL to access the wordcloud image")
 
     class Config:
         schema_extra = {
@@ -107,7 +107,7 @@ class InsightsMetrics(BaseModel):
                     "Address issues related to 'slow'",
                     "Address issues related to 'bug'"
                 ],
-                "wordcloud_image": "data:image/png;base64,..."
+                "wordcloud_url": "/api/v1/wordcloud/123456"
             }
         }
 

@@ -12,6 +12,8 @@ import base64
 from io import BytesIO
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import os
+from pathlib import Path
 
 from .models import InsightsMetrics
 
@@ -119,20 +121,32 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
         logger.error(f"Error in keyword extraction: {str(e)}")
         return []
 
-def generate_wordcloud(text: str) -> str:
+def generate_wordcloud(text: str, app_id: str) -> str:
     """
     Generate word cloud image from text using WordCloud library.
     
     Args:
         text: Text to analyze
+        app_id: App Store ID to use in the filename
         
     Returns:
-        Base64 encoded PNG image string
+        URL to access the wordcloud image
     """
     if not text:
+        logger.warning("No text provided for wordcloud generation")
         return ""
     
     try:
+        # Create wordcloud directory if it doesn't exist
+        wordcloud_dir = Path("static/wordclouds")
+        wordcloud_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate filename using app_id
+        filename = f"wordcloud_{app_id}.png"
+        filepath = wordcloud_dir / filename
+        
+        logger.info(f"Generating wordcloud for app {app_id} at {filepath}")
+        
         # Create and generate a word cloud image
         wordcloud = WordCloud(
             width=800,
@@ -150,20 +164,25 @@ def generate_wordcloud(text: str) -> str:
         plt.imshow(wordcloud, interpolation='bilinear')
         plt.axis('off')
         
-        # Save the image to a BytesIO object
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format='png', bbox_inches='tight', pad_inches=0)
+        # Save the image to file
+        plt.savefig(filepath, format='png', bbox_inches='tight', pad_inches=0, dpi=100)
         plt.close()
         
-        # Convert to base64 string
-        img_str = base64.b64encode(img_buffer.getvalue()).decode()
-        return f"data:image/png;base64,{img_str}"
+        # Verify file was created
+        if not filepath.exists():
+            logger.error(f"Failed to save wordcloud to {filepath}")
+            return ""
+            
+        logger.info(f"Successfully generated wordcloud at {filepath}")
+        
+        # Return complete URL to access the image
+        return f"http://localhost:8001/api/v1/wordcloud/{app_id}"
     
     except Exception as e:
         logger.error(f"Error generating word cloud: {str(e)}")
         return ""
 
-def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
+def nlp_analyze_reviews(reviews: List[Dict[str, Any]], app_id: str) -> InsightsMetrics:
     """
     Perform comprehensive NLP analysis on reviews.
     
@@ -181,14 +200,14 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
             sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
             negative_keywords=[],
             improvement_areas=[],
-            wordcloud_image=""
+            wordcloud_url=""
         )
     
     logger.info(f"Analyzing {len(reviews)} reviews")
     
     # Combine all review texts for word cloud generation
     all_reviews_text = " ".join(review.get('review_text', '') for review in reviews)
-    wordcloud_image = generate_wordcloud(all_reviews_text)
+    wordcloud_url = generate_wordcloud(all_reviews_text, app_id)
     
     # Sentiment Analysis
     sentiments = []
@@ -222,7 +241,7 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
             sentiment_distribution={"POSITIVE": 0, "NEGATIVE": 0},
             negative_keywords=[],
             improvement_areas=[],
-            wordcloud_image=""
+            wordcloud_url=""
         )
     
     # Calculate sentiment distribution
@@ -289,5 +308,5 @@ def nlp_analyze_reviews(reviews: List[Dict[str, Any]]) -> InsightsMetrics:
         sentiment_distribution=sentiment_distribution,
         negative_keywords=negative_keywords,
         improvement_areas=improvement_areas,
-        wordcloud_image=wordcloud_image
+        wordcloud_url=wordcloud_url
     ) 

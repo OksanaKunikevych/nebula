@@ -4,7 +4,9 @@ from typing import List, Optional
 from datetime import datetime
 import json
 import io
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from pathlib import Path
+import os
 
 from .metrics import calculate_metrics
 from .utils import get_reviews, clean_reviews, validate_app_id
@@ -23,6 +25,29 @@ try:
 except ConnectionError as e:
     logger.error(f"Failed to initialize database: {str(e)}")
     db = None
+
+@router.get("/wordcloud/{app_id}")
+async def get_wordcloud(app_id: str):
+    """
+    Get the wordcloud image for a specific app.
+    """
+    try:
+        wordcloud_path = Path("static/wordclouds") / f"wordcloud_{app_id}.png"
+        if not wordcloud_path.exists():
+            logger.error(f"Wordcloud not found at path: {wordcloud_path}")
+            raise HTTPException(status_code=404, detail="Wordcloud not found")
+        
+        # Log the file path for debugging
+        logger.info(f"Serving wordcloud from: {wordcloud_path}")
+        
+        return FileResponse(
+            wordcloud_path,
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=3600"}
+        )
+    except Exception as e:
+        logger.error(f"Error serving wordcloud: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/reviews/{app_id}")
 async def collect_reviews(
@@ -65,7 +90,7 @@ async def collect_reviews(
         metrics = calculate_metrics(processed_reviews)
         
         # Perform NLP analysis
-        insights = nlp_analyze_reviews(processed_reviews)
+        insights = nlp_analyze_reviews(processed_reviews, app_id)
         
         # Save metrics and insights
         await db.save_metrics(app_id, metrics)
