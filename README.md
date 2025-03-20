@@ -18,7 +18,7 @@ A FastAPI-based service for collecting, analyzing, and storing App Store reviews
 
 ```bash
 git clone https://github.com/OksanaKunikevych/nebula.git
-cd nebula/app
+cd nebula
 ```
 
 ### 2️⃣ Create and activate a virtual environment (conda or venv)
@@ -92,6 +92,61 @@ app-store-review-analysis/
 ## Endpoints workflow
 <img width="783" alt="Screenshot 2025-03-19 at 5 54 12 PM" src="https://github.com/user-attachments/assets/acf4cb60-ed4a-433c-b94b-a3ead2efeb6b" />
 
+---
+
+## 🔧 How to Use the API
+
+### 1️⃣ Start the API server
+
+```bash
+uvicorn app.main:app --reload --port 8001
+```
+
+### 2️⃣ Access the API documentation
+
+```
+http://localhost:8001/docs
+```
+
+### 3️⃣ Example API calls
+
+💡 Note: To find an app id in App Store:
+1. Search for the app in the Apple App Store.
+2. The App ID is the numeric value in the URL, right after /id:
+https://apps.apple.com/us/app/sleep-cycle-tracker-sounds/id**320606217**
+
+
+#### a. Collect and process reviews
+
+```bash
+curl -X POST "http://localhost:8001/api/v1/reviews/1459969523?limit=100"
+```
+
+#### b. Get raw reviews
+
+```bash
+http://localhost:8001/api/v1/reviews/1459969523/raw?limit=100
+```
+
+#### c. Get metrics and insights
+
+```bash
+http://localhost:8001/api/v1/reviews/1459969523/metrics
+```
+
+## Using the Basic UI
+
+The project includes a simple HTML interface (`index.html`) for basic interaction with the API:
+
+1. Open the index.html file in your web browser
+
+
+2. Features:
+   - Real-time review collection and analysis
+   - Visual representation of review metrics and insights
+
+Note: This is a very basic v0 UI implementation.
+
 ## 📝 Data Models
 
 ### 📌 Raw Review
@@ -147,53 +202,6 @@ app-store-review-analysis/
 
 ---
 
-## 🔧 How to Use the API
-
-### 1️⃣ Start the API server
-
-```bash
-uvicorn app.main:app --reload --port 8001
-```
-
-### 2️⃣ Access the API documentation
-
-```
-http://localhost:8001/docs
-```
-
-### 3️⃣ Example API calls
-
-#### a. Collect and process reviews
-
-```bash
-curl -X POST "http://localhost:8001/api/v1/reviews/1459969523?limit=100"
-```
-
-#### b. Get raw reviews
-
-```bash
-http://localhost:8001/api/v1/reviews/1459969523/raw?limit=100
-```
-
-#### c. Get metrics and insights
-
-```bash
-http://localhost:8001/api/v1/reviews/1459969523/metrics
-```
-
-## Using the Basic UI
-
-The project includes a simple HTML interface (`index.html`) for basic interaction with the API:
-
-1. Open the index.html file in your web browser
-
-
-2. Features:
-   - Real-time review collection and analysis
-   - Visual representation of review metrics and insights
-
-Note: This is a basic v0 UI implementation.
-
 ## Future plans and improvements
 - More insights ideas: 
   - correlations between review_length_stats and rating, better keyword extraction
@@ -206,3 +214,4 @@ Note: This is a basic v0 UI implementation.
   - Raw download endpoint: enhance to download either raw or processed with ?type=“raw/processed”
   - Add test coverage
   
+More info: [App Store Reviews Collector Notion](https://sky-surf-0ef.notion.site/App-Store-Reviews-Collector-1bb97b8d71b2809db786f8ccb62f0743)
